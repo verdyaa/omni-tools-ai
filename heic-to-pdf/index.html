@@ -27,6 +27,7 @@
 
       <nav class="topbar-nav">
         <a href="/omni-tools-ai/pdf-to-markdown/" class="nav-chip">PDF to MD</a>
+        <a href="/omni-tools-ai/image-to-text/" class="nav-chip">Image OCR</a>
         <a href="/omni-tools-ai/dxf-to-svg/" class="nav-chip">CAD DXF</a>
         <a href="/omni-tools-ai/redact-pdf/" class="nav-chip">PII Redact</a>
         <a href="/omni-tools-ai/remove-image-background/" class="nav-chip">Background</a>
@@ -58,6 +59,7 @@
                 <option value="image/png">PNG</option>
                 <option value="image/jpeg">JPG</option>
                 <option value="image/webp">WebP</option>
+                <option value="application/pdf">PDF</option>
               </select>
             </label>
             <label class="select-pill">
@@ -73,58 +75,74 @@
               Filter
               <select id="img-effect">
                 <option value="none">Original</option>
+                <option value="remove-bg">AI Cutout (Remove BG)</option>
                 <option value="studio">Studio Backdrop</option>
                 <option value="blur">Privacy Blur</option>
+                <option value="grayscale">Document B&amp;W</option>
               </select>
             </label>
-            <button type="button" id="img-export-btn" class="btn btn-primary">Export Image</button>
+            <button type="button" id="img-export-btn" class="btn btn-primary">Export File</button>
           </div>
           <div class="stage-surface">
             <canvas id="work-canvas" width="660" height="280" style="max-width:100%;height:auto;border-radius:8px;display:block"></canvas>
           </div>
         </div>
 
-        <!-- Engine 2: Document to Markdown & Redaction -->
+        <!-- Engine 2: Document, PDF & Optical OCR Studio -->
         <div id="engine-doc-markdown" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
+            <input type="file" id="doc-file-input" accept="image/*,.pdf,.csv,.tsv,.txt,.md,.json,.docx,.epub" multiple class="btn" title="Upload Image for OCR, PDF, CSV, or Text Document" />
+            <button type="button" id="doc-ocr-sample-btn" class="btn">Demo OCR Image</button>
             <button type="button" id="doc-sample-table-btn" class="btn">Table Sample</button>
             <button type="button" id="doc-sample-pii-btn" class="btn">PII Contract</button>
-            <button type="button" id="doc-convert-md-btn" class="btn btn-primary">Format Table MD</button>
+            <button type="button" id="doc-convert-md-btn" class="btn btn-primary">Format / Extract</button>
             <button type="button" id="doc-redact-btn" class="btn">Redact PII</button>
             <button type="button" id="doc-download-btn" class="btn btn-accent">Export .MD</button>
           </div>
+          <div id="doc-ocr-stage" class="stage-surface" style="min-height:150px;margin-bottom:12px;flex-direction:column;gap:8px;display:none">
+            <canvas id="ocr-preview-canvas" width="640" height="130" style="max-width:100%;height:auto;border-radius:6px;display:block"></canvas>
+            <div id="ocr-status-text" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-secondary)">OCR ENGINE READY — Upload an image (PNG/JPG/WebP) or click "Demo OCR Image"</div>
+          </div>
           <div class="editor-split">
-            <textarea id="doc-input" rows="11" placeholder="Paste CSV, TSV, Excel rows, or legal text..."></textarea>
-            <textarea id="doc-output" rows="11" readonly placeholder="Parsed Markdown table or sanitized text..."></textarea>
+            <textarea id="doc-input" rows="9" placeholder="Upload an image above for OCR, drop a PDF/CSV, or paste raw text..."></textarea>
+            <textarea id="doc-output" rows="9" readonly placeholder="Extracted OCR text, Markdown table, or redacted output..."></textarea>
           </div>
         </div>
 
         <!-- Engine 3: CAD DXF Vector Plotter -->
         <div id="engine-cad-dxf" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
+            <input type="file" id="dxf-file-input" accept=".dxf,.txt" class="btn" title="Upload AutoCAD .DXF file" />
             <button type="button" id="dxf-sample-btn" class="btn">Load CNC Bracket (.DXF)</button>
             <button type="button" id="dxf-convert-btn" class="btn btn-primary">Plot Vector SVG</button>
             <button type="button" id="dxf-download-btn" class="btn btn-accent">Export .SVG</button>
           </div>
           <div class="editor-split">
-            <textarea id="dxf-input" rows="11" placeholder="Paste ASCII AutoCAD .DXF file contents..."></textarea>
+            <textarea id="dxf-input" rows="11" placeholder="Upload a .DXF file above or paste ASCII AutoCAD .DXF entities..."></textarea>
             <div id="dxf-preview" class="stage-surface" style="min-height:230px"></div>
           </div>
         </div>
 
-        <!-- Engine 4: Audio / Video Decoder -->
+        <!-- Engine 4: Audio / Video Decoder & Transcription Studio -->
         <div id="engine-media-audio-video" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="media-input" accept="audio/*,video/*" class="btn" />
-            <button type="button" id="media-synth-btn" class="btn btn-primary">Export Lossless 44.1kHz .WAV</button>
+            <input type="file" id="media-input" accept="audio/*,video/*" class="btn" title="Upload Audio or Video file" />
+            <button type="button" id="media-transcribe-btn" class="btn">Transcribe / SRT</button>
+            <button type="button" id="media-synth-btn" class="btn btn-primary">Export 44.1kHz .WAV</button>
+            <button type="button" id="media-export-txt-btn" class="btn btn-accent">Export .TXT / .SRT</button>
           </div>
-          <div class="stage-surface">
-            <p style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:0.84rem">Local WebAudio 32-bit float PCM stream ready. Zero server uploads.</p>
+          <div class="stage-surface" style="flex-direction:column;gap:12px;min-height:240px">
+            <canvas id="media-waveform" width="640" height="110" style="max-width:100%;height:auto;border-radius:6px;display:block"></canvas>
+            <textarea id="media-transcript" rows="4" style="width:100%;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:6px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:0.78rem" placeholder="Upload an audio/video file above to decode waveform &amp; generate transcript / SRT subtitles..."></textarea>
           </div>
         </div>
 
         <!-- Engine 5: 3D Rig Stage -->
         <div id="engine-3d-stage" style="display:none">
+          <div class="toolbar-strip" style="margin-bottom:12px">
+            <input type="file" id="mmd-file-input" accept=".pmx,.pmd,.vmd,.obj,.json" class="btn" title="Upload 3D Model or Pose" />
+            <button type="button" id="mmd-export-btn" class="btn btn-primary">Export Pose (.JSON)</button>
+          </div>
           <div class="stage-surface">
             <canvas id="mmd-canvas" width="560" height="260" style="max-width:100%"></canvas>
           </div>
