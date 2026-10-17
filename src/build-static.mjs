@@ -2244,6 +2244,7 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-site-verification" content="4l9NmgnQeBFR-PK1VZE4G8aKsW0qcKK6dM74O6a3QV0" />
   <title>${title}</title>
   <meta name="description" content="${desc}" />
   <link rel="canonical" href="${canonical}" />
