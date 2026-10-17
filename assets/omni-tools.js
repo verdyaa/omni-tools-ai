@@ -1403,6 +1403,27 @@ document.getElementById('media-paste-btn')?.addEventListener('click', async () =
   }
 });
 
+document.getElementById('share-tool-btn')?.addEventListener('click', async () => {
+  const shareUrl = window.location.href;
+  const shareTitle = document.title;
+  const shareText = (currentTool ? currentTool.title : 'OmniTools') + ' — 100% local in browser RAM (zero cloud uploads):';
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+      return;
+    } catch {}
+  }
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    const btn = document.getElementById('share-tool-btn');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied Link ✓';
+      setTimeout(() => { btn.textContent = orig; }, 1600);
+    }
+  } catch {}
+});
+
 updateMonetizationUI();
 renderCatalog();
 const initialSlug = window.__INITIAL_TOOL_SLUG__;
