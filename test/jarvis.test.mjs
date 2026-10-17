@@ -211,6 +211,37 @@ test('renderBentoHtml produces structured hardware console UI with Gumroad check
   assert.ok(html.includes('closedby="any"'));
 });
 
+test('all 5 tool engines expose matching file inputs (including image input for OCR, DXF upload, audio waveform, and PDF builder)', async () => {
+  const { renderBentoHtml, buildClientBundle } = await import('../src/build-static.mjs');
+  const { TOOLS_CATALOG } = await import('../src/tools-catalog.mjs');
+
+  const ocrTool = TOOLS_CATALOG.find((t) => t.slug === 'image-to-text');
+  const html = renderBentoHtml(ocrTool, {
+    baseUrl: 'https://verdyaa.github.io/omni-tools-ai',
+    basePath: '/omni-tools-ai'
+  });
+
+  // 1. Document / OCR engine must have an image & document file input + OCR preview canvas
+  assert.ok(html.includes('id="doc-file-input"'));
+  assert.ok(html.includes('accept="image/*'));
+  assert.ok(html.includes('id="ocr-preview-canvas"'));
+  assert.ok(html.includes('id="doc-ocr-sample-btn"'));
+
+  // 2. CAD DXF engine must have a .dxf file input
+  assert.ok(html.includes('id="dxf-file-input"'));
+
+  // 3. Audio/Video engine must have waveform canvas & transcript output
+  assert.ok(html.includes('id="media-waveform"'));
+  assert.ok(html.includes('id="media-transcript"'));
+
+  // 4. Client bundle must wire up OCR recognition, background removal, and PDF generation
+  const bundle = buildClientBundle('/omni-tools-ai');
+  assert.ok(bundle.includes('runImageOcr'));
+  assert.ok(bundle.includes('applyBackgroundRemoval'));
+  assert.ok(bundle.includes('canvasToPdfBlob'));
+});
+
+
 
 
 

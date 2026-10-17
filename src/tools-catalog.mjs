@@ -46,21 +46,21 @@ const IMAGE_TOOLS = [
 );
 
 const DOCUMENT_TOOLS = [
-  ['jpg-to-pdf', 'JPG to PDF Document Builder', 'doc-markdown', 'md', 'Smallpdf / iLovePDF ($7-$12/mo)'],
-  ['png-to-pdf', 'PNG to PDF Combiner', 'doc-markdown', 'md', 'Smallpdf ($7-$12/mo)'],
-  ['heic-to-pdf', 'HEIC to PDF Converter', 'doc-markdown', 'md', 'iLovePDF ($7-$12/mo)'],
-  ['merge-pdf', 'Merge PDF Files Offline', 'doc-markdown', 'md', 'Sejda / PDF24 ($7-$12/mo)'],
-  ['split-pdf', 'Split PDF Pages Locally', 'doc-markdown', 'md', 'Smallpdf ($7-$12/mo)'],
-  ['rotate-pdf', 'Rotate PDF Pages', 'doc-markdown', 'md', 'SodaPDF ($7-$12/mo)'],
-  ['pdf-to-png', 'PDF to PNG Page Extractor', 'doc-markdown', 'md', 'PDF24 / Smallpdf ($7-$12/mo)'],
-  ['pdf-to-jpg', 'PDF to JPG High-Res Export', 'doc-markdown', 'md', 'iLovePDF ($7-$12/mo)'],
+  ['jpg-to-pdf', 'JPG to PDF Document Builder', 'image-canvas', 'pdf', 'Smallpdf / iLovePDF ($7-$12/mo)'],
+  ['png-to-pdf', 'PNG to PDF Combiner', 'image-canvas', 'pdf', 'Smallpdf ($7-$12/mo)'],
+  ['heic-to-pdf', 'HEIC to PDF Converter', 'image-canvas', 'pdf', 'iLovePDF ($7-$12/mo)'],
+  ['merge-pdf', 'Merge PDF Files Offline', 'doc-markdown', 'pdf', 'Sejda / PDF24 ($7-$12/mo)'],
+  ['split-pdf', 'Split PDF Pages Locally', 'doc-markdown', 'pdf', 'Smallpdf ($7-$12/mo)'],
+  ['rotate-pdf', 'Rotate PDF Pages', 'doc-markdown', 'pdf', 'SodaPDF ($7-$12/mo)'],
+  ['pdf-to-png', 'PDF to PNG Page Extractor', 'doc-markdown', 'png', 'PDF24 / Smallpdf ($7-$12/mo)'],
+  ['pdf-to-jpg', 'PDF to JPG High-Res Export', 'doc-markdown', 'jpg', 'iLovePDF ($7-$12/mo)'],
   ['pdf-to-markdown', 'PDF to Markdown (LLM & RAG Ready)', 'doc-markdown', 'md', 'Mathpix / LlamaParse ($10-$49/mo)'],
   ['pdf-to-text', 'PDF to Plain Text Extractor', 'doc-markdown', 'txt', 'Docsumo / UPDF ($10-$49/mo)'],
   ['word-to-markdown', 'Word (.docx) to Clean Markdown', 'doc-markdown', 'md', 'LlamaParse ($10-$49/mo)'],
   ['excel-to-markdown', 'Excel / CSV to Markdown Table', 'doc-markdown', 'md', 'Mathpix Snip ($10-$49/mo)'],
   ['epub-to-txt', 'EPUB to TXT eBook Extractor', 'doc-markdown', 'txt', 'EPUBor / Zamzar ($8-$29/mo)'],
   ['dxf-to-svg', 'CAD DXF to SVG Vector Blueprint', 'cad-dxf', 'svg', 'Scan2CAD / AnyDWG ($29-$99/mo)'],
-  ['dxf-to-pdf', 'CAD DXF to PDF Engineering Sheet', 'cad-dxf', 'svg', 'AutoDWG ($29-$99/mo)'],
+  ['dxf-to-pdf', 'CAD DXF to PDF Engineering Sheet', 'cad-dxf', 'pdf', 'AutoDWG ($29-$99/mo)'],
   ['dxf-to-png', 'CAD DXF to PNG High-Res Plot', 'cad-dxf', 'png', 'Aspose CAD ($29-$99/mo)']
 ].map(([slug, title, engine, outputExt, benchmark]) =>
   Object.freeze({ slug, title, category: 'document', runtime: 'Browser WASM/Parser', engine, outputExt, benchmark })
