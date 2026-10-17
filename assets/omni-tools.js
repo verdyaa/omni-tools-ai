@@ -416,6 +416,8 @@ function selectTool(tool) {
   if (fmtSelect) {
     if (tool.outputExt === 'jpg') fmtSelect.value = 'image/jpeg';
     else if (tool.outputExt === 'webp') fmtSelect.value = 'image/webp';
+    else if (tool.outputExt === 'avif') fmtSelect.value = 'image/avif';
+    else if (tool.outputExt === 'ico') fmtSelect.value = 'image/x-icon';
     else if (tool.outputExt === 'pdf') fmtSelect.value = 'application/pdf';
     else fmtSelect.value = 'image/png';
   }
@@ -695,18 +697,15 @@ document.getElementById('img-scale')?.addEventListener('change', (e) => {
   if (loadedUserImage) renderLoadedImageToCanvas();
 });
 
-// Enforce Pro locks on multi-file selection & file size
-document.getElementById('img-input')?.addEventListener('change', (e) => {
-  const files = e.target.files;
+// Enforce Pro locks on multi-file selection, drag-and-drop, & file size
+function handleImageFiles(files) {
   if (!files || !files.length || !workCanvas || !workCtx) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   if (files[0].size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
   }
   const img = new Image();
@@ -715,9 +714,23 @@ document.getElementById('img-input')?.addEventListener('change', (e) => {
     renderLoadedImageToCanvas();
   };
   img.src = URL.createObjectURL(files[0]);
+}
+
+document.getElementById('img-input')?.addEventListener('change', (e) => {
+  handleImageFiles(e.target.files);
 });
 
-// Enforce quota & upscale lock on Image Export (including PDF export for jpg-to-pdf / png-to-pdf)
+workCanvas?.parentElement?.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+workCanvas?.parentElement?.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer?.files?.length) {
+    handleImageFiles(e.dataTransfer.files);
+  }
+});
+
+// Enforce quota & upscale lock on Image Export (including PDF, ICO, AVIF, WebP, JPG, PNG)
 document.getElementById('img-export-btn')?.addEventListener('click', () => {
   if (!workCanvas) return;
   const scale = parseFloat(document.getElementById('img-scale')?.value || '1');
@@ -735,9 +748,11 @@ document.getElementById('img-export-btn')?.addEventListener('click', () => {
     a.click();
     return;
   }
-  const ext = mime.split('/')[1];
+  const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/x-icon': 'ico' };
+  const ext = extMap[mime] || currentTool?.outputExt || 'png';
+  const canvasMime = (mime === 'image/x-icon') ? 'image/png' : mime;
   const a = document.createElement('a');
-  a.href = workCanvas.toDataURL(mime, 0.92);
+  a.href = workCanvas.toDataURL(canvasMime, 0.92);
   a.download = (currentTool?.slug || 'omnitools') + '.' + ext;
   a.click();
 });
@@ -788,6 +803,39 @@ function drawOcrSampleCanvas() {
   if (docOut) docOut.value = sampleText;
   const statusEl = document.getElementById('ocr-status-text');
   if (statusEl) statusEl.textContent = '✓ SAMPLE OCR IMAGE LOADED — Upload any PNG/JPG/WebP image above to extract text';
+}
+
+function renderTextDocumentCanvas(rawText) {
+  const isRotated = currentTool?.slug === 'rotate-pdf';
+  const c = document.createElement('canvas');
+  c.width = isRotated ? 840 : 640;
+  c.height = isRotated ? 640 : 840;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(24, 24, c.width - 48, c.height - 48);
+
+  ctx.fillStyle = '#111827';
+  ctx.font = '700 16px "Space Grotesk", sans-serif';
+  ctx.fillText((currentTool?.title || 'OmniTools Document') + ' — Local Output', 44, 60);
+
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.beginPath();
+  ctx.moveTo(44, 76);
+  ctx.lineTo(c.width - 44, 76);
+  ctx.stroke();
+
+  ctx.fillStyle = '#1f2937';
+  ctx.font = '400 12.5px "JetBrains Mono", monospace';
+  const lines = String(rawText || 'OmniTools Local Document Output').split(/\r?\n/);
+  let y = 104;
+  for (let i = 0; i < Math.min(lines.length, 42); i++) {
+    ctx.fillText(lines[i].slice(0, 78), 44, y);
+    y += 18;
+  }
+  return c;
 }
 
 async function runImageOcr(file) {
@@ -879,14 +927,22 @@ document.getElementById('doc-file-input')?.addEventListener('change', async (e) 
     return;
   }
 
-  const rawText = await file.text();
-  let cleaned = rawText;
-  if (file.name.toLowerCase().endsWith('.pdf') || rawText.startsWith('%PDF')) {
-    const matches = [...rawText.matchAll(/\(([^()]{2,200})\)\s*Tj/g)].map((m) => m[1]);
-    cleaned = matches.length > 0
-      ? matches.join('\n')
-      : '# Extracted PDF Document: ' + file.name + '\nSize: ' + Math.round(file.size / 1024) + ' KB\n\n' + rawText.replace(/[^\x20-\x7E\r\n]/g, ' ').replace(/\s+/g, ' ').slice(0, 2000);
+  const sections = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const rawText = await f.text();
+    if (f.name.toLowerCase().endsWith('.pdf') || rawText.startsWith('%PDF')) {
+      const matches = [...rawText.matchAll(/\(([^()]{2,200})\)\s*Tj/g)].map((m) => m[1]);
+      sections.push(
+        matches.length > 0
+          ? matches.join('\n')
+          : '# Extracted PDF Document: ' + f.name + '\nSize: ' + Math.round(f.size / 1024) + ' KB\n\n' + rawText.replace(/[^\x20-\x7E\r\n]/g, ' ').replace(/\s+/g, ' ').slice(0, 2000)
+      );
+    } else {
+      sections.push(rawText);
+    }
   }
+  const cleaned = sections.join('\n\n--- PAGE BREAK ---\n\n');
   const docIn = document.getElementById('doc-input');
   const docOut = document.getElementById('doc-output');
   if (docIn) docIn.value = cleaned;
@@ -931,8 +987,25 @@ document.getElementById('doc-redact-btn')?.addEventListener('click', () => {
 
 document.getElementById('doc-download-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const out = document.getElementById('doc-output')?.value || document.getElementById('doc-input')?.value || '';
+  const out = document.getElementById('doc-output')?.value || document.getElementById('doc-input')?.value || 'OmniTools Document';
   const ext = currentTool?.outputExt || 'md';
+  if (ext === 'pdf') {
+    const pageCanvas = renderTextDocumentCanvas(out);
+    const pdfBlob = canvasToPdfBlob(pageCanvas);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(pdfBlob);
+    a.download = (currentTool?.slug || 'document') + '.pdf';
+    a.click();
+    return;
+  }
+  if (ext === 'png' || ext === 'jpg') {
+    const pageCanvas = renderTextDocumentCanvas(out);
+    const a = document.createElement('a');
+    a.href = pageCanvas.toDataURL(ext === 'jpg' ? 'image/jpeg' : 'image/png', 0.92);
+    a.download = (currentTool?.slug || 'document') + '.' + ext;
+    a.click();
+    return;
+  }
   const mime = ext === 'txt' ? 'text/plain' : 'text/markdown';
   const blob = new Blob([out], { type: mime });
   const a = document.createElement('a');
@@ -973,6 +1046,33 @@ document.getElementById('dxf-convert-btn')?.addEventListener('click', renderDxfP
 document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
   const svg = document.getElementById('dxf-preview')?.innerHTML || convertDxfToSvg(sampleDxf);
+  const ext = currentTool?.outputExt || 'svg';
+  if (ext === 'png' || ext === 'pdf') {
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 900;
+      c.height = 600;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#090a0d';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      if (ext === 'pdf') {
+        a.href = URL.createObjectURL(canvasToPdfBlob(c));
+        a.download = (currentTool?.slug || 'blueprint') + '.pdf';
+      } else {
+        a.href = c.toDataURL('image/png');
+        a.download = (currentTool?.slug || 'blueprint') + '.png';
+      }
+      a.click();
+    };
+    img.src = url;
+    return;
+  }
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -983,6 +1083,7 @@ document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
 // --- Engine 4: Audio / Video Waveform & Transcription Studio ---
 const waveCanvas = document.getElementById('media-waveform');
 const waveCtx = waveCanvas?.getContext('2d');
+let decodedAudioBuffer = null;
 
 function drawDemoWaveform(samples = null, label = '44.1kHz 16-bit PCM • Local Stream Ready') {
   if (!waveCanvas || !waveCtx) return;
@@ -1030,6 +1131,7 @@ document.getElementById('media-input')?.addEventListener('change', async (e) => 
     if (AudioCtx) {
       const actx = new AudioCtx();
       const audioBuffer = await actx.decodeAudioData(arrayBuf);
+      decodedAudioBuffer = audioBuffer;
       const chData = audioBuffer.getChannelData(0);
       drawDemoWaveform(chData, file.name + ' • ' + audioBuffer.duration.toFixed(1) + 's • ' + audioBuffer.sampleRate + 'Hz');
       if (transcriptEl) {
@@ -1042,7 +1144,7 @@ document.getElementById('media-input')?.addEventListener('change', async (e) => 
       return;
     }
   } catch {
-    // Fallback for container formats
+    decodedAudioBuffer = null;
   }
   drawDemoWaveform(null, 'Loaded: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)');
   if (transcriptEl) {
@@ -1079,8 +1181,11 @@ document.getElementById('media-export-txt-btn')?.addEventListener('click', () =>
 
 document.getElementById('media-synth-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const sampleRate = 44100;
-  const numSamples = sampleRate;
+  const sampleRate = decodedAudioBuffer ? decodedAudioBuffer.sampleRate : 44100;
+  const srcChannel = decodedAudioBuffer ? decodedAudioBuffer.getChannelData(0) : null;
+  const maxFrames = sampleRate * 30;
+  const numSamples = srcChannel ? Math.min(srcChannel.length, maxFrames) : sampleRate;
+  const isReversed = currentTool?.slug === 'reverse-video';
   const buffer = new ArrayBuffer(44 + numSamples * 2);
   const view = new DataView(buffer);
   const writeStr = (offset, str) => {
@@ -1099,8 +1204,10 @@ document.getElementById('media-synth-btn')?.addEventListener('click', () => {
   writeStr(36, 'data');
   view.setUint32(40, numSamples * 2, true);
   for (let i = 0; i < numSamples; i++) {
-    const sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.35;
-    view.setInt16(44 + i * 2, sample * 32767, true);
+    const idx = isReversed ? (numSamples - 1 - i) : i;
+    const rawSample = srcChannel ? srcChannel[idx] : Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.35;
+    const clamped = Math.max(-1, Math.min(1, rawSample));
+    view.setInt16(44 + i * 2, clamped * 32767, true);
   }
   const blob = new Blob([buffer], { type: 'audio/wav' });
   const a = document.createElement('a');
@@ -1111,14 +1218,46 @@ document.getElementById('media-synth-btn')?.addEventListener('click', () => {
 
 // --- Engine 5: 3D Rig Stage ---
 const mmdCanvas = document.getElementById('mmd-canvas');
+let loadedRigData = {
+  rig: 'mmd-humanoid-v1',
+  fileName: 'default-humanoid.pmx',
+  vertices: 12480,
+  bones: { head: [0, 1.5, 0], spine: [0, 1.0, 0], leftArm: [-0.4, 1.2, 0], rightArm: [0.4, 1.2, 0] }
+};
+
+document.getElementById('mmd-file-input')?.addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if (!files || !files.length) return;
+  const file = files[0];
+  if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
+    openProDialog('filesize');
+    e.target.value = '';
+    return;
+  }
+  try {
+    const text = await file.text();
+    if (file.name.endsWith('.json')) {
+      const parsed = JSON.parse(text);
+      loadedRigData = { ...loadedRigData, ...parsed, fileName: file.name };
+    } else if (file.name.endsWith('.obj')) {
+      const vCount = (text.match(/^v\s+/gm) || []).length;
+      loadedRigData = { ...loadedRigData, fileName: file.name, vertices: vCount || 1024 };
+    } else {
+      loadedRigData = { ...loadedRigData, fileName: file.name, vertices: Math.max(256, Math.round(file.size / 32)) };
+    }
+  } catch {
+    loadedRigData = { ...loadedRigData, fileName: file.name };
+  }
+});
+
 if (mmdCanvas) {
   const mCtx = mmdCanvas.getContext('2d');
   let angle = 0;
   function drawMmd() {
     angle += 0.025;
     mCtx.clearRect(0, 0, mmdCanvas.width, mmdCanvas.height);
-    mCtx.strokeStyle = '#f0f2f5';
-    mCtx.lineWidth = 2;
+    mCtx.strokeStyle = '#ff6b00';
+    mCtx.lineWidth = 2.2;
     const cx = mmdCanvas.width / 2;
     const sway = Math.sin(angle) * 24;
     mCtx.beginPath();
@@ -1128,10 +1267,13 @@ if (mmdCanvas) {
     mCtx.moveTo(cx - 48, 105 + sway * 0.3);
     mCtx.lineTo(cx + 48, 105 - sway * 0.3);
     mCtx.moveTo(cx, 155);
-    mCtx.lineTo(cx - 32, 235);
+    mCtx.lineTo(cx - 32, 225);
     mCtx.moveTo(cx, 155);
-    mCtx.lineTo(cx + 32, 235);
+    mCtx.lineTo(cx + 32, 225);
     mCtx.stroke();
+    mCtx.fillStyle = '#949cae';
+    mCtx.font = '500 11px "JetBrains Mono", monospace';
+    mCtx.fillText('RIG: ' + loadedRigData.fileName + ' • VERTICES: ' + loadedRigData.vertices, 14, mmdCanvas.height - 10);
     requestAnimationFrame(drawMmd);
   }
   requestAnimationFrame(drawMmd);
@@ -1139,11 +1281,11 @@ if (mmdCanvas) {
 
 document.getElementById('mmd-export-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const poseJson = JSON.stringify({ rig: 'mmd-humanoid-v1', timestamp: Date.now(), bones: { head: [0, 1.5, 0], spine: [0, 1.0, 0] } }, null, 2);
+  const poseJson = JSON.stringify({ ...loadedRigData, timestamp: Date.now() }, null, 2);
   const blob = new Blob([poseJson], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'mmd-pose.json';
+  a.download = (currentTool?.slug || 'mmd-pose') + '.json';
   a.click();
 });
 
