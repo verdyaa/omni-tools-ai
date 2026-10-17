@@ -392,6 +392,10 @@ function selectTool(tool) {
   document.title = tool.title + ' — OmniTools';
   const h1 = document.getElementById('tool-page-h1');
   if (h1) h1.textContent = tool.title;
+  const descEl = document.getElementById('tool-page-desc');
+  if (descEl) {
+    descEl.textContent = tool.title + ' directly in your browser (' + tool.runtime + '). Zero cloud uploads. Built-in replacement for ' + tool.benchmark + '.';
+  }
   const runtimeEl = document.getElementById('active-tool-runtime');
   if (runtimeEl) runtimeEl.textContent = tool.runtime;
   const benchEl = document.getElementById('active-tool-benchmark');
@@ -425,24 +429,103 @@ const workCtx = workCanvas?.getContext('2d');
 function drawDemoGraphic() {
   if (!workCanvas || !workCtx) return;
   const effect = document.getElementById('img-effect')?.value || 'none';
-  workCtx.clearRect(0, 0, workCanvas.width, workCanvas.height);
+  const title = currentTool ? currentTool.title : 'OmniTools Studio';
+  const W = workCanvas.width;
+  const H = workCanvas.height;
+
+  workCtx.clearRect(0, 0, W, H);
   workCtx.filter = effect === 'blur' ? 'blur(6px)' : 'none';
+
   if (effect === 'studio') {
-    const grad = workCtx.createRadialGradient(280, 140, 20, 280, 140, 260);
-    grad.addColorStop(0, '#232732');
+    const grad = workCtx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W / 2);
+    grad.addColorStop(0, '#222634');
     grad.addColorStop(1, '#090a0d');
     workCtx.fillStyle = grad;
-    workCtx.fillRect(0, 0, workCanvas.width, workCanvas.height);
+    workCtx.fillRect(0, 0, W, H);
+  } else {
+    workCtx.fillStyle = '#06070a';
+    workCtx.fillRect(0, 0, W, H);
+    workCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    for (let x = 16; x < W; x += 24) {
+      for (let y = 16; y < H; y += 24) {
+        workCtx.fillRect(x, y, 1.5, 1.5);
+      }
+    }
   }
-  workCtx.strokeStyle = '#333a4c';
+
+  const subText = 'Processed locally in browser RAM • Zero cloud uploads';
+  workCtx.font = '700 18px "Space Grotesk", -apple-system, sans-serif';
+  const titleW = workCtx.measureText(title).width;
+  workCtx.font = '500 11.5px "JetBrains Mono", monospace';
+  const subW = workCtx.measureText(subText).width;
+
+  const contentW = Math.max(titleW, subW);
+  const boxW = Math.min(W - 48, Math.max(contentW + 80, 480));
+  const boxH = 160;
+  const boxX = Math.round((W - boxW) / 2);
+  const boxY = Math.round((H - boxH) / 2);
+  const cx = Math.round(W / 2);
+
+  // Card background
+  const cardGrad = workCtx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+  cardGrad.addColorStop(0, '#13151d');
+  cardGrad.addColorStop(1, '#0c0d12');
+  workCtx.fillStyle = cardGrad;
+  workCtx.fillRect(boxX, boxY, boxW, boxH);
+
+  // Outer border
+  workCtx.strokeStyle = '#2b3040';
   workCtx.lineWidth = 1.5;
-  workCtx.strokeRect(70, 45, 420, 190);
+  workCtx.strokeRect(boxX, boxY, boxW, boxH);
+
+  // Corner tick marks
+  const tick = 10;
+  workCtx.strokeStyle = '#ff6b00';
+  workCtx.lineWidth = 2;
+  // Top-left
+  workCtx.beginPath();
+  workCtx.moveTo(boxX, boxY + tick); workCtx.lineTo(boxX, boxY); workCtx.lineTo(boxX + tick, boxY);
+  workCtx.stroke();
+  // Top-right
+  workCtx.beginPath();
+  workCtx.moveTo(boxX + boxW - tick, boxY); workCtx.lineTo(boxX + boxW, boxY); workCtx.lineTo(boxX + boxW, boxY + tick);
+  workCtx.stroke();
+  // Bottom-left
+  workCtx.beginPath();
+  workCtx.moveTo(boxX, boxY + boxH - tick); workCtx.lineTo(boxX, boxY + boxH); workCtx.lineTo(boxX + tick, boxY + boxH);
+  workCtx.stroke();
+  // Bottom-right
+  workCtx.beginPath();
+  workCtx.moveTo(boxX + boxW - tick, boxY + boxH); workCtx.lineTo(boxX + boxW, boxY + boxH); workCtx.lineTo(boxX + boxW, boxY + boxH - tick);
+  workCtx.stroke();
+
+  // Status pill centered
+  workCtx.textAlign = 'center';
+  workCtx.textBaseline = 'middle';
+
+  workCtx.fillStyle = '#ff6b00';
+  workCtx.beginPath();
+  workCtx.arc(cx - 72, boxY + 28, 4, 0, Math.PI * 2);
+  workCtx.fill();
+
+  workCtx.fillStyle = '#ff9d5c';
+  workCtx.font = '600 10px "JetBrains Mono", monospace';
+  workCtx.fillText('LOCAL BUFFER // HARDWARE READY', cx + 6, boxY + 28);
+
+  // Title centered (guaranteed inside boxW)
   workCtx.fillStyle = '#f0f2f5';
-  workCtx.font = '600 18px "Space Grotesk", sans-serif';
-  workCtx.fillText(currentTool ? currentTool.title : 'OmniTools Studio', 100, 125);
+  workCtx.font = '700 18px "Space Grotesk", sans-serif';
+  workCtx.fillText(title, cx, boxY + 68);
+
+  // Subtitle centered (guaranteed inside boxW)
   workCtx.fillStyle = '#949cae';
-  workCtx.font = '13px "JetBrains Mono", monospace';
-  workCtx.fillText('Processed locally in browser RAM • Zero cloud uploads', 100, 160);
+  workCtx.font = '500 11.5px "JetBrains Mono", monospace';
+  workCtx.fillText(subText, cx, boxY + 102);
+
+  // Hint centered
+  workCtx.fillStyle = '#5e6678';
+  workCtx.font = '400 10.5px "JetBrains Mono", monospace';
+  workCtx.fillText('Choose a file above or drag & drop onto this canvas to process', cx, boxY + 130);
 }
 
 document.getElementById('img-demo-btn')?.addEventListener('click', drawDemoGraphic);
