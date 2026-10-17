@@ -105,6 +105,27 @@ document.getElementById('activate-license-btn')?.addEventListener('click', async
   }
 
   try {
+    const res = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        product_id: 'IWq3y0TS5f0qACrpBmCung==',
+        license_key: key
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      localStorage.setItem(STORAGE_KEY_PRO, key);
+      updateMonetizationUI();
+      if (statusEl) statusEl.textContent = 'Gumroad license verified! Pro unlocked.';
+      setTimeout(() => proDialog?.close(), 600);
+      return;
+    }
+  } catch {
+    // network fallback
+  }
+
+  try {
     const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -114,14 +135,14 @@ document.getElementById('activate-license-btn')?.addEventListener('click', async
     if (data && data.valid) {
       localStorage.setItem(STORAGE_KEY_PRO, key);
       updateMonetizationUI();
-      if (statusEl) statusEl.textContent = 'LemonSqueezy license verified!';
+      if (statusEl) statusEl.textContent = 'License verified! Pro unlocked.';
       setTimeout(() => proDialog?.close(), 600);
       return;
     }
   } catch {
     // Offline fallback
   }
-  if (statusEl) statusEl.textContent = 'Invalid key. Try demo key: OMNI-PRO-2026';
+  if (statusEl) statusEl.textContent = 'Invalid license key. Check your Gumroad receipt.';
 });
 
 function convertTableToMarkdown(rawText) {
