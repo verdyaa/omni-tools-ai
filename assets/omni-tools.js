@@ -697,6 +697,18 @@ document.getElementById('img-scale')?.addEventListener('change', (e) => {
   if (loadedUserImage) renderLoadedImageToCanvas();
 });
 
+function syncFilesToInput(inputId, files) {
+  try {
+    const inputEl = document.getElementById(inputId);
+    if (!inputEl || !files || !files.length || typeof DataTransfer === 'undefined') return;
+    const dt = new DataTransfer();
+    for (let i = 0; i < files.length; i++) dt.items.add(files[i]);
+    inputEl.files = dt.files;
+  } catch {
+    // Ignore if browser restricts programmatic FileList assignment
+  }
+}
+
 // Enforce Pro locks on multi-file selection, drag-and-drop, & file size
 function handleImageFiles(files) {
   if (!files || !files.length || !workCanvas || !workCtx) return;
@@ -708,6 +720,7 @@ function handleImageFiles(files) {
     openProDialog('filesize');
     return;
   }
+  syncFilesToInput('img-input', files);
   const img = new Image();
   img.onload = () => {
     loadedUserImage = img;
@@ -718,16 +731,6 @@ function handleImageFiles(files) {
 
 document.getElementById('img-input')?.addEventListener('change', (e) => {
   handleImageFiles(e.target.files);
-});
-
-workCanvas?.parentElement?.addEventListener('dragover', (e) => {
-  e.preventDefault();
-});
-workCanvas?.parentElement?.addEventListener('drop', (e) => {
-  e.preventDefault();
-  if (e.dataTransfer?.files?.length) {
-    handleImageFiles(e.dataTransfer.files);
-  }
 });
 
 // Enforce quota & upscale lock on Image Export (including PDF, ICO, AVIF, WebP, JPG, PNG)
@@ -907,20 +910,18 @@ document.getElementById('doc-ocr-sample-btn')?.addEventListener('click', () => {
   drawOcrSampleCanvas();
 });
 
-document.getElementById('doc-file-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleDocFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   const file = files[0];
   if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('doc-file-input', files);
 
   if (file.type.startsWith('image/')) {
     await runImageOcr(file);
@@ -949,6 +950,10 @@ document.getElementById('doc-file-input')?.addEventListener('change', async (e) 
   if (docOut) {
     docOut.value = currentTool?.slug === 'redact-pdf' ? redactSensitiveText(cleaned) : convertTableToMarkdown(cleaned);
   }
+}
+
+document.getElementById('doc-file-input')?.addEventListener('change', (e) => {
+  handleDocFiles(e.target.files);
 });
 
 document.getElementById('doc-sample-table-btn')?.addEventListener('click', () => {
@@ -1023,18 +1028,21 @@ function renderDxfPreview() {
   if (preview) preview.innerHTML = convertDxfToSvg(raw);
 }
 
-document.getElementById('dxf-file-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleDxfFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('dxf-file-input', files);
   const text = await files[0].text();
   const input = document.getElementById('dxf-input');
   if (input) input.value = text;
   renderDxfPreview();
+}
+
+document.getElementById('dxf-file-input')?.addEventListener('change', (e) => {
+  handleDxfFiles(e.target.files);
 });
 
 document.getElementById('dxf-sample-btn')?.addEventListener('click', () => {
@@ -1110,19 +1118,22 @@ function drawDemoWaveform(samples = null, label = '44.1kHz 16-bit PCM • Local 
   waveCtx.fillText(label, 14, H - 8);
 }
 
-document.getElementById('media-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleMediaFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   const file = files[0];
   if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
+  }
+  syncFilesToInput('media-input', files);
+  const dropHint = document.getElementById('media-drop-hint');
+  if (dropHint) {
+    dropHint.textContent = '✓ LOADED MEDIA: ' + file.name + ' (' + Math.max(1, Math.round(file.size / 1024)) + ' KB) — Drag/drop or Ctrl+V to replace';
+    dropHint.style.color = '#ff9d5c';
   }
   const transcriptEl = document.getElementById('media-transcript');
   try {
@@ -1150,6 +1161,10 @@ document.getElementById('media-input')?.addEventListener('change', async (e) => 
   if (transcriptEl) {
     transcriptEl.value = '1\n00:00:00,000 --> 00:00:05,000\n[Media Stream Ready: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)]';
   }
+}
+
+document.getElementById('media-input')?.addEventListener('change', (e) => {
+  handleMediaFiles(e.target.files);
 });
 
 document.getElementById('media-transcribe-btn')?.addEventListener('click', () => {
@@ -1225,15 +1240,14 @@ let loadedRigData = {
   bones: { head: [0, 1.5, 0], spine: [0, 1.0, 0], leftArm: [-0.4, 1.2, 0], rightArm: [0.4, 1.2, 0] }
 };
 
-document.getElementById('mmd-file-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleMmdFiles(files) {
   if (!files || !files.length) return;
   const file = files[0];
   if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('mmd-file-input', files);
   try {
     const text = await file.text();
     if (file.name.endsWith('.json')) {
@@ -1248,6 +1262,10 @@ document.getElementById('mmd-file-input')?.addEventListener('change', async (e) 
   } catch {
     loadedRigData = { ...loadedRigData, fileName: file.name };
   }
+}
+
+document.getElementById('mmd-file-input')?.addEventListener('change', (e) => {
+  handleMmdFiles(e.target.files);
 });
 
 if (mmdCanvas) {
@@ -1287,6 +1305,102 @@ document.getElementById('mmd-export-btn')?.addEventListener('click', () => {
   a.href = URL.createObjectURL(blob);
   a.download = (currentTool?.slug || 'mmd-pose') + '.json';
   a.click();
+});
+
+// --- Universal Drag & Drop + Clipboard Paste (Ctrl+V / Cmd+V) Router ---
+function routeIncomingFiles(files) {
+  if (!files || !files.length) return;
+  const eng = currentTool?.engine || 'image-canvas';
+  if (eng === 'media-audio-video') return handleMediaFiles(files);
+  if (eng === 'doc-markdown') return handleDocFiles(files);
+  if (eng === 'cad-dxf') return handleDxfFiles(files);
+  if (eng === '3d-stage') return handleMmdFiles(files);
+  return handleImageFiles(files);
+}
+
+const workbenchCell = document.querySelector('.cell-workbench');
+if (workbenchCell) {
+  workbenchCell.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    workbenchCell.classList.add('drop-active');
+  });
+  workbenchCell.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    workbenchCell.classList.add('drop-active');
+  });
+  workbenchCell.addEventListener('dragleave', (e) => {
+    if (!workbenchCell.contains(e.relatedTarget)) {
+      workbenchCell.classList.remove('drop-active');
+    }
+  });
+  workbenchCell.addEventListener('drop', (e) => {
+    e.preventDefault();
+    workbenchCell.classList.remove('drop-active');
+    if (e.dataTransfer?.files?.length) {
+      routeIncomingFiles(e.dataTransfer.files);
+    }
+  });
+}
+
+window.addEventListener('paste', (e) => {
+  const clipFiles = e.clipboardData?.files;
+  if (clipFiles && clipFiles.length > 0) {
+    e.preventDefault();
+    routeIncomingFiles(clipFiles);
+    return;
+  }
+  const activeTag = document.activeElement?.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+  const pastedText = e.clipboardData?.getData('text/plain');
+  if (pastedText && pastedText.trim()) {
+    const eng = currentTool?.engine || 'image-canvas';
+    if (eng === 'media-audio-video') {
+      const tEl = document.getElementById('media-transcript');
+      if (tEl) tEl.value = pastedText.trim();
+      drawDemoWaveform(null, 'Pasted Clipboard Media Stream (' + pastedText.trim().length + ' chars)');
+    } else if (eng === 'doc-markdown') {
+      const docIn = document.getElementById('doc-input');
+      const docOut = document.getElementById('doc-output');
+      if (docIn) docIn.value = pastedText;
+      if (docOut) docOut.value = currentTool?.slug === 'redact-pdf' ? redactSensitiveText(pastedText) : convertTableToMarkdown(pastedText);
+    } else if (eng === 'cad-dxf') {
+      const dxfIn = document.getElementById('dxf-input');
+      if (dxfIn) dxfIn.value = pastedText;
+      renderDxfPreview();
+    }
+  }
+});
+
+document.getElementById('media-paste-btn')?.addEventListener('click', async () => {
+  try {
+    if (navigator.clipboard?.read) {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const mediaType = item.types.find((t) => t.startsWith('audio/') || t.startsWith('video/') || t.startsWith('image/')) || item.types[0];
+        if (mediaType && !mediaType.startsWith('text/')) {
+          const blob = await item.getType(mediaType);
+          const ext = (mediaType.split('/')[1] || 'wav').split(';')[0];
+          const file = new File([blob], 'pasted-media.' + ext, { type: mediaType });
+          await handleMediaFiles([file]);
+          return;
+        }
+      }
+    }
+    if (navigator.clipboard?.readText) {
+      const txt = await navigator.clipboard.readText();
+      if (txt && txt.trim()) {
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const file = new File([blob], 'pasted-stream.txt', { type: 'text/plain' });
+        await handleMediaFiles([file]);
+        const tEl = document.getElementById('media-transcript');
+        if (tEl) tEl.value = txt.trim();
+      }
+    }
+  } catch {
+    const dropHint = document.getElementById('media-drop-hint');
+    if (dropHint) dropHint.textContent = 'Press Ctrl+V (or Cmd+V) on your keyboard to paste media from clipboard';
+  }
 });
 
 updateMonetizationUI();
