@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to JPG Batch Converter — Free Online Browser Tool | OmniTools AI</title>
+  <meta name="description" content="Image to JPG Batch Converter 100% free in your browser (Browser Canvas). Zero file uploads required. Replaces Zamzar ($9-$25/mo)." />
+  <link rel="canonical" href="https://verdyaa.github.io/omni-tools-ai/image-to-jpg/" />
+  <meta property="og:title" content="Image to JPG Batch Converter — Free Online Browser Tool | OmniTools AI" />
+  <meta property="og:description" content="Image to JPG Batch Converter 100% free in your browser (Browser Canvas). Zero file uploads required. Replaces Zamzar ($9-$25/mo)." />
+  <meta property="og:url" content="https://verdyaa.github.io/omni-tools-ai/image-to-jpg/" />
+  <meta property="og:type" content="website" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Image to JPG Batch Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (Web Browser)","url":"https://verdyaa.github.io/omni-tools-ai/image-to-jpg/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <link rel="stylesheet" href="/omni-tools-ai/assets/styles.css" />
+</head>
+<body>
+  <div class="hud-shell">
+    <header class="hud-header">
+      <div class="brand-block">
+        <div class="brand-title" id="tool-page-h1">IMAGE TO JPG BATCH CONVERTER</div>
+        <div class="brand-subtitle">
+          OMNITOOLS AI // 84 CLIENT-SIDE WEBTOOLS // 100% PRIVATE IN-BROWSER EXECUTION
+        </div>
+      </div>
+
+      <div class="status-pills">
+        <a href="/omni-tools-ai/" class="pill pill-online" style="text-decoration:none"><span class="dot"></span> ALL 84 TOOLS</a>
+        <a href="/omni-tools-ai/pdf-to-markdown/" class="pill" style="text-decoration:none">PDF TO MARKDOWN</a>
+        <a href="/omni-tools-ai/dxf-to-svg/" class="pill" style="text-decoration:none">CAD DXF TO SVG</a>
+        <a href="/omni-tools-ai/redact-pdf/" class="pill" style="text-decoration:none">REDACT PDF</a>
+        <a href="/omni-tools-ai/sitemap.xml" target="_blank" class="pill" style="text-decoration:none">SITEMAP.XML</a>
+      </div>
+    </header>
+
+    <main class="hud-grid" style="grid-template-columns: 360px 1fr;">
+      <section class="hud-column">
+        <article class="hud-panel panel-grow">
+          <div class="panel-header">
+            <span>84 PROGRAMMATIC SEO TOOLS</span>
+            <span class="panel-tag" id="catalog-count">84 TOOLS</span>
+          </div>
+
+          <div class="status-pills" id="category-tabs" style="margin-bottom:10px">
+            <button type="button" class="hud-btn" data-cat="all">ALL (84)</button>
+            <button type="button" class="hud-btn" data-cat="ai">AI (9)</button>
+            <button type="button" class="hud-btn" data-cat="image">IMG (25)</button>
+            <button type="button" class="hud-btn" data-cat="document">DOC/CAD (16)</button>
+            <button type="button" class="hud-btn" data-cat="video">VIDEO (19)</button>
+            <button type="button" class="hud-btn" data-cat="audio">AUDIO (14)</button>
+            <button type="button" class="hud-btn" data-cat="3d">3D (1)</button>
+          </div>
+
+          <input
+            type="text"
+            id="tool-search"
+            placeholder="Search 84 tools (e.g. dxf-to-svg, pdf-to-markdown, webp)..."
+            style="width:100%;margin-bottom:10px;padding:8px 10px;background:#030e1e;border:1px solid var(--cyan-dim);color:var(--text-main);border-radius:4px;font-family:inherit;font-size:0.74rem;"
+          />
+
+          <div id="tools-directory" class="comms-log" style="max-height:560px"></div>
+        </article>
+      </section>
+
+      <section class="hud-column">
+        <article class="hud-panel">
+          <div class="panel-header">
+            <span id="active-tool-title">CLIENT-SIDE WORKSPACE // IMAGE TO JPG BATCH CONVERTER</span>
+            <span class="panel-tag" id="active-tool-benchmark">Zamzar ($9-$25/mo)</span>
+          </div>
+
+          <p class="metric-sub" style="margin-bottom:12px">
+            Image to JPG Batch Converter 100% free in your browser (Browser Canvas). Zero file uploads required. Replaces Zamzar ($9-$25/mo).
+          </p>
+
+          <div id="engine-image-canvas" class="engine-box">
+            <div class="command-console" style="margin-bottom:10px">
+              <input type="file" id="img-input" accept="image/*" class="hud-btn" />
+              <button type="button" id="img-demo-btn" class="hud-btn hud-btn-primary">LOAD SAMPLE GRAPHIC</button>
+              <label class="pill">
+                FORMAT:
+                <select id="img-format" style="background:transparent;color:var(--cyan-bright);border:none;font-family:inherit">
+                  <option value="image/png">PNG</option>
+                  <option value="image/jpeg">JPG</option>
+                  <option value="image/webp">WEBP</option>
+                </select>
+              </label>
+              <label class="pill">
+                SCALE:
+                <select id="img-scale" style="background:transparent;color:var(--cyan-bright);border:none;font-family:inherit">
+                  <option value="1">1x (Original)</option>
+                  <option value="0.5">0.5x (Compress)</option>
+                  <option value="2">2x (Upscale)</option>
+                </select>
+              </label>
+              <label class="pill">
+                EFFECT:
+                <select id="img-effect" style="background:transparent;color:var(--cyan-bright);border:none;font-family:inherit">
+                  <option value="none">None</option>
+                  <option value="studio">Studio Background + Drop Shadow</option>
+                  <option value="blur">Privacy Blur Censor</option>
+                </select>
+              </label>
+              <button type="button" id="img-export-btn" class="hud-btn hud-btn-primary">EXPORT IMAGE</button>
+            </div>
+            <canvas id="work-canvas" width="560" height="300" style="border:1px dashed var(--cyan-dim);border-radius:6px;max-width:100%;background:#041022"></canvas>
+          </div>
+
+          <div id="engine-doc-markdown" class="engine-box" style="display:none">
+            <div class="command-console" style="margin-bottom:10px">
+              <button type="button" id="doc-sample-table-btn" class="hud-btn">LOAD CSV/EXCEL SAMPLE</button>
+              <button type="button" id="doc-sample-pii-btn" class="hud-btn">LOAD CONTRACT WITH PII</button>
+              <button type="button" id="doc-convert-md-btn" class="hud-btn hud-btn-primary">CONVERT TO MARKDOWN</button>
+              <button type="button" id="doc-redact-btn" class="hud-btn hud-btn-primary">AUTO-REDACT PII</button>
+              <button type="button" id="doc-download-btn" class="hud-btn">DOWNLOAD .MD</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <textarea id="doc-input" rows="12" placeholder="Paste CSV, TSV, HTML, or document text here..." style="width:100%;background:#030e1e;color:var(--text-main);border:1px solid var(--cyan-dim);padding:10px;border-radius:4px;font-family:inherit;font-size:0.75rem"></textarea>
+              <textarea id="doc-output" rows="12" readonly placeholder="Clean LLM-ready Markdown or redacted output appears here..." style="width:100%;background:#020813;color:var(--emerald);border:1px solid var(--cyan-dim);padding:10px;border-radius:4px;font-family:inherit;font-size:0.75rem"></textarea>
+            </div>
+          </div>
+
+          <div id="engine-cad-dxf" class="engine-box" style="display:none">
+            <div class="command-console" style="margin-bottom:10px">
+              <button type="button" id="dxf-sample-btn" class="hud-btn hud-btn-primary">LOAD SAMPLE CNC BRACKET (.DXF)</button>
+              <button type="button" id="dxf-convert-btn" class="hud-btn hud-btn-primary">RENDER VECTOR SVG</button>
+              <button type="button" id="dxf-download-btn" class="hud-btn">DOWNLOAD .SVG</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
+              <textarea id="dxf-input" rows="12" style="width:100%;background:#030e1e;color:var(--text-main);border:1px solid var(--cyan-dim);padding:10px;border-radius:4px;font-family:inherit;font-size:0.72rem"></textarea>
+              <div id="dxf-preview" style="border:1px solid var(--cyan-dim);border-radius:4px;padding:8px;background:#041022;min-height:220px;display:flex;align-items:center;justify-content:center"></div>
+            </div>
+          </div>
+
+          <div id="engine-media-audio-video" class="engine-box" style="display:none">
+            <div class="command-console" style="margin-bottom:10px">
+              <input type="file" id="media-input" accept="audio/*,video/*" class="hud-btn" />
+              <button type="button" id="media-synth-btn" class="hud-btn hud-btn-primary">GENERATE &amp; EXPORT SAMPLE WAV</button>
+            </div>
+            <div class="log-entry">Ready to decode audio/video tracks locally via Browser WebAudio API.</div>
+          </div>
+
+          <div id="engine-3d-stage" class="engine-box" style="display:none">
+            <p class="metric-sub" style="margin-bottom:8px">Interactive 3D Bone &amp; Wireframe Rig Previewer (.pmx / .vmd)</p>
+            <canvas id="mmd-canvas" width="560" height="260" style="border:1px solid var(--cyan-dim);border-radius:6px;background:#041022"></canvas>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>window.__INITIAL_TOOL_SLUG__ = "image-to-jpg";</script>
+  <script type="module" src="/omni-tools-ai/assets/omni-tools.js"></script>
+</body>
+</html>
