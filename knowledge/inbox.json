@@ -1,0 +1,23 @@
+[
+  {
+    "id": "msg-101",
+    "from": "alex@customer.io",
+    "subject": "How do I reset password on my account?",
+    "body": "Hi team, I got locked out and need to reset my password.",
+    "status": "unread"
+  },
+  {
+    "id": "msg-102",
+    "from": "sarah@design.co",
+    "subject": "Restore purchase on new iPhone",
+    "body": "Just upgraded my phone and my Pro subscription isn't syncing.",
+    "status": "unread"
+  },
+  {
+    "id": "msg-103",
+    "from": "Devon@startup.dev",
+    "subject": "Feature Request: Webhook & CSV Export",
+    "body": "Would love a one-click CSV export and webhook trigger for daily reports.",
+    "status": "unread"
+  }
+]

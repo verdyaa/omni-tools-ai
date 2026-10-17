@@ -230,15 +230,25 @@ test('all 5 tool engines expose matching file inputs (including image input for 
   // 2. CAD DXF engine must have a .dxf file input
   assert.ok(html.includes('id="dxf-file-input"'));
 
-  // 3. Audio/Video engine must have waveform canvas & transcript output
+  // 3. Audio/Video engine must have waveform canvas, transcript output, paste button, and dropzone
   assert.ok(html.includes('id="media-waveform"'));
   assert.ok(html.includes('id="media-transcript"'));
+  assert.ok(html.includes('id="media-paste-btn"'));
+  assert.ok(html.includes('id="media-dropzone"'));
 
-  // 4. Client bundle must wire up OCR recognition, background removal, and PDF generation
+  // 4. Client bundle must wire up OCR recognition, background removal, PDF generation, real audio WAV encoding, drag/drop/paste routing, and 3D rig uploads
   const bundle = buildClientBundle('/omni-tools-ai');
   assert.ok(bundle.includes('runImageOcr'));
   assert.ok(bundle.includes('applyBackgroundRemoval'));
   assert.ok(bundle.includes('canvasToPdfBlob'));
+  assert.ok(bundle.includes('handleImageFiles'));
+  assert.ok(bundle.includes('handleMediaFiles'));
+  assert.ok(bundle.includes('routeIncomingFiles'));
+  assert.ok(bundle.includes('syncFilesToInput'));
+  assert.ok(bundle.includes("window.addEventListener('paste'"));
+  assert.ok(bundle.includes('renderTextDocumentCanvas'));
+  assert.ok(bundle.includes('decodedAudioBuffer'));
+  assert.ok(bundle.includes("getElementById('mmd-file-input')?.addEventListener('change'"));
 });
 
 

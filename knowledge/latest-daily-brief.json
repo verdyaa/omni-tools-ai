@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-10-17T08:50:10.763Z",
+  "speechText": "Good evening, sir. Pulling up our app stats now. Over the last seven days, we had 2,459 new downloads and generated $4,289 in revenue. For organic content, I'm still posting 3 short-form videos a day across Instagram Reels, TikTok, YouTube Shorts. On ads, you spent $475 at a 1.5 return on ad spend. Throughout the week, you received 16 customer emails. I resolved 13 automatically, mostly common questions and account issues, while 3 requested the same feature. Since you had already approved that direction, I handed it to Tom, the developer agent. My recommendation today: review the back-end PR, keep leaning into the street interview ad angle, and have Scout research the next set of organic content angles to test. What would you like me to handle first, sir?",
+  "metrics": {
+    "timestamp": "2026-10-17T08:50:10.763Z",
+    "revenueCat": {
+      "connected": true,
+      "mode": "simulated-mcp",
+      "downloads7d": 2459,
+      "revenue7d": 4289,
+      "activeSubscriptions": 1184,
+      "mrr": 14820,
+      "trialConversionRate": "38.4%",
+      "dailySeries": [
+        490,
+        540,
+        610,
+        585,
+        670,
+        654,
+        740
+      ]
+    },
+    "buffer": {
+      "connected": true,
+      "mode": "simulated-mcp",
+      "postsPerDay": 3,
+      "platforms": [
+        "Instagram Reels",
+        "TikTok",
+        "YouTube Shorts"
+      ],
+      "queuedVideos": 9,
+      "topAngle": "Street Interview — AI vs Manual Workflow"
+    },
+    "metaAds": {
+      "connected": true,
+      "mode": "simulated-mcp",
+      "spend7d": 475,
+      "roas": 1.5,
+      "revenueAttributed": 712.5,
+      "cpm": 11.4,
+      "ctr": "2.8%",
+      "winningCreative": "Street Interview Hook #4"
+    },
+    "gmail": {
+      "connected": true,
+      "mode": "simulated-mcp",
+      "totalReceived": 16,
+      "autoResolved": 13,
+      "escalatedToDev": 3,
+      "resolutionRate": "81.3%",
+      "topEscalation": "Offline Mode & Export Sync (handed to Tom)"
+    },
+    "chrome": {
+      "connected": true,
+      "mode": "ready",
+      "activeTabs": 4
+    }
+  },
+  "subagents": [
+    {
+      "id": "tom",
+      "name": "Tom",
+      "role": "Developer Agent",
+      "model": "claude-sonnet-4-6",
+      "status": "ACTIVE",
+      "currentTask": "Reviewing backend PR #42 & implementing offline export sync from customer feedback",
+      "tools": [
+        "GitHub PRs",
+        "Bash",
+        "Test Runner",
+        "Code Editor"
+      ]
+    },
+    {
+      "id": "scout",
+      "name": "Scout",
+      "role": "Growth & Content Agent",
+      "model": "claude-sonnet-4-6",
+      "status": "STANDBY",
+      "currentTask": "Researching next batch of street interview short-form hooks & queuing 3 daily reels via Buffer MCP",
+      "tools": [
+        "Buffer MCP",
+        "Meta Ads MCP",
+        "Web Search"
+      ]
+    },
+    {
+      "id": "support",
+      "name": "Support",
+      "role": "Inbox & FAQ Agent",
+      "model": "claude-haiku-4-5",
+      "status": "MONITORING",
+      "currentTask": "Auto-resolving Gmail customer inquiries via knowledge/faq.md (13/16 resolved)",
+      "tools": [
+        "Gmail MCP",
+        "knowledge/faq.md"
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec-pr",
+      "agentId": "tom",
+      "title": "Review Back-End PR #42",
+      "command": "Have Tom review the back-end PR and run the verification suite",
+      "badge": "TOM • DEV AGENT"
+    },
+    {
+      "id": "rec-ads",
+      "agentId": "scout",
+      "title": "Scale Street Interview Ad Angle",
+      "command": "Scale the street interview ad angle on Meta Ads and queue 3 new cuts on Buffer",
+      "badge": "META ADS + BUFFER MCP"
+    },
+    {
+      "id": "rec-scout",
+      "agentId": "scout",
+      "title": "Research Next Organic Content Angles",
+      "command": "Have Scout research the next set of organic content angles to test",
+      "badge": "SCOUT • GROWTH AGENT"
+    }
+  ]
+}

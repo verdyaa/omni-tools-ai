@@ -1,0 +1,32 @@
+[
+  {
+    "id": "reel-01",
+    "platform": "Instagram Reels",
+    "targetUrl": "https://verdyaa.github.io/omni-tools-ai/pdf-to-markdown/",
+    "checkoutUrl": "https://wedworks.gumroad.com/l/xlqmp",
+    "angle": "Street Interview — Why are you still uploading confidential PDFs to random cloud servers?",
+    "hook": "Stop uploading client contracts to sketchy PDF sites. Watch this browser tool redact SSNs and convert tables to clean AI Markdown in 0.4 seconds—with your Wi-Fi turned OFF.",
+    "cta": "Try free at verdyaa.github.io/omni-tools-ai/redact-pdf/ or grab the $29 Lifetime Pro Pass",
+    "status": "ready"
+  },
+  {
+    "id": "tiktok-02",
+    "platform": "TikTok",
+    "targetUrl": "https://verdyaa.github.io/omni-tools-ai/dxf-to-svg/",
+    "checkoutUrl": "https://wedworks.gumroad.com/l/xlqmp",
+    "angle": "1 Engine = 84 Local Browser Tools Breakdown",
+    "hook": "I replaced 5 paid SaaS subscriptions with 84 local browser tools that run 100% inside device RAM—zero cloud uploads, drag/drop/paste support, and instant PDF/OCR/DXF exports.",
+    "cta": "Test all 84 tools at verdyaa.github.io/omni-tools-ai/",
+    "status": "ready"
+  },
+  {
+    "id": "shorts-03",
+    "platform": "YouTube Shorts",
+    "targetUrl": "https://verdyaa.github.io/omni-tools-ai/image-to-text/",
+    "checkoutUrl": "https://wedworks.gumroad.com/l/etvreq",
+    "angle": "Ctrl+V Screenshot to OCR & Background Removal Speedrun",
+    "hook": "Take a screenshot, press Ctrl+V directly in the browser tab, and extract OCR text or remove the background locally in RAM without paying $29/month.",
+    "cta": "Open verdyaa.github.io/omni-tools-ai/image-to-text/",
+    "status": "ready"
+  }
+]

@@ -453,6 +453,26 @@ body {
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.7);
   overflow: hidden;
   position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stage-surface.drop-active,
+.cell-workbench.drop-active,
+.toolbar-strip.drop-active {
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 28px rgba(255, 107, 0, 0.22), 0 0 18px rgba(255, 107, 0, 0.25) !important;
+}
+
+.drop-paste-hint {
+  width: 100%;
+  text-align: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  background: rgba(255, 107, 0, 0.05);
 }
 
 #work-canvas {
@@ -1175,6 +1195,8 @@ function selectTool(tool) {
   if (fmtSelect) {
     if (tool.outputExt === 'jpg') fmtSelect.value = 'image/jpeg';
     else if (tool.outputExt === 'webp') fmtSelect.value = 'image/webp';
+    else if (tool.outputExt === 'avif') fmtSelect.value = 'image/avif';
+    else if (tool.outputExt === 'ico') fmtSelect.value = 'image/x-icon';
     else if (tool.outputExt === 'pdf') fmtSelect.value = 'application/pdf';
     else fmtSelect.value = 'image/png';
   }
@@ -1454,29 +1476,43 @@ document.getElementById('img-scale')?.addEventListener('change', (e) => {
   if (loadedUserImage) renderLoadedImageToCanvas();
 });
 
-// Enforce Pro locks on multi-file selection & file size
-document.getElementById('img-input')?.addEventListener('change', (e) => {
-  const files = e.target.files;
+function syncFilesToInput(inputId, files) {
+  try {
+    const inputEl = document.getElementById(inputId);
+    if (!inputEl || !files || !files.length || typeof DataTransfer === 'undefined') return;
+    const dt = new DataTransfer();
+    for (let i = 0; i < files.length; i++) dt.items.add(files[i]);
+    inputEl.files = dt.files;
+  } catch {
+    // Ignore if browser restricts programmatic FileList assignment
+  }
+}
+
+// Enforce Pro locks on multi-file selection, drag-and-drop, & file size
+function handleImageFiles(files) {
   if (!files || !files.length || !workCanvas || !workCtx) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   if (files[0].size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('img-input', files);
   const img = new Image();
   img.onload = () => {
     loadedUserImage = img;
     renderLoadedImageToCanvas();
   };
   img.src = URL.createObjectURL(files[0]);
+}
+
+document.getElementById('img-input')?.addEventListener('change', (e) => {
+  handleImageFiles(e.target.files);
 });
 
-// Enforce quota & upscale lock on Image Export (including PDF export for jpg-to-pdf / png-to-pdf)
+// Enforce quota & upscale lock on Image Export (including PDF, ICO, AVIF, WebP, JPG, PNG)
 document.getElementById('img-export-btn')?.addEventListener('click', () => {
   if (!workCanvas) return;
   const scale = parseFloat(document.getElementById('img-scale')?.value || '1');
@@ -1494,9 +1530,11 @@ document.getElementById('img-export-btn')?.addEventListener('click', () => {
     a.click();
     return;
   }
-  const ext = mime.split('/')[1];
+  const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/x-icon': 'ico' };
+  const ext = extMap[mime] || currentTool?.outputExt || 'png';
+  const canvasMime = (mime === 'image/x-icon') ? 'image/png' : mime;
   const a = document.createElement('a');
-  a.href = workCanvas.toDataURL(mime, 0.92);
+  a.href = workCanvas.toDataURL(canvasMime, 0.92);
   a.download = (currentTool?.slug || 'omnitools') + '.' + ext;
   a.click();
 });
@@ -1547,6 +1585,39 @@ function drawOcrSampleCanvas() {
   if (docOut) docOut.value = sampleText;
   const statusEl = document.getElementById('ocr-status-text');
   if (statusEl) statusEl.textContent = '✓ SAMPLE OCR IMAGE LOADED — Upload any PNG/JPG/WebP image above to extract text';
+}
+
+function renderTextDocumentCanvas(rawText) {
+  const isRotated = currentTool?.slug === 'rotate-pdf';
+  const c = document.createElement('canvas');
+  c.width = isRotated ? 840 : 640;
+  c.height = isRotated ? 640 : 840;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(24, 24, c.width - 48, c.height - 48);
+
+  ctx.fillStyle = '#111827';
+  ctx.font = '700 16px "Space Grotesk", sans-serif';
+  ctx.fillText((currentTool?.title || 'OmniTools Document') + ' — Local Output', 44, 60);
+
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.beginPath();
+  ctx.moveTo(44, 76);
+  ctx.lineTo(c.width - 44, 76);
+  ctx.stroke();
+
+  ctx.fillStyle = '#1f2937';
+  ctx.font = '400 12.5px "JetBrains Mono", monospace';
+  const lines = String(rawText || 'OmniTools Local Document Output').split(/\\r?\\n/);
+  let y = 104;
+  for (let i = 0; i < Math.min(lines.length, 42); i++) {
+    ctx.fillText(lines[i].slice(0, 78), 44, y);
+    y += 18;
+  }
+  return c;
 }
 
 async function runImageOcr(file) {
@@ -1618,40 +1689,50 @@ document.getElementById('doc-ocr-sample-btn')?.addEventListener('click', () => {
   drawOcrSampleCanvas();
 });
 
-document.getElementById('doc-file-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleDocFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   const file = files[0];
   if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('doc-file-input', files);
 
   if (file.type.startsWith('image/')) {
     await runImageOcr(file);
     return;
   }
 
-  const rawText = await file.text();
-  let cleaned = rawText;
-  if (file.name.toLowerCase().endsWith('.pdf') || rawText.startsWith('%PDF')) {
-    const matches = [...rawText.matchAll(/\\(([^()]{2,200})\\)\\s*Tj/g)].map((m) => m[1]);
-    cleaned = matches.length > 0
-      ? matches.join('\\n')
-      : '# Extracted PDF Document: ' + file.name + '\\nSize: ' + Math.round(file.size / 1024) + ' KB\\n\\n' + rawText.replace(/[^\\x20-\\x7E\\r\\n]/g, ' ').replace(/\\s+/g, ' ').slice(0, 2000);
+  const sections = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const rawText = await f.text();
+    if (f.name.toLowerCase().endsWith('.pdf') || rawText.startsWith('%PDF')) {
+      const matches = [...rawText.matchAll(/\\(([^()]{2,200})\\)\\s*Tj/g)].map((m) => m[1]);
+      sections.push(
+        matches.length > 0
+          ? matches.join('\\n')
+          : '# Extracted PDF Document: ' + f.name + '\\nSize: ' + Math.round(f.size / 1024) + ' KB\\n\\n' + rawText.replace(/[^\\x20-\\x7E\\r\\n]/g, ' ').replace(/\\s+/g, ' ').slice(0, 2000)
+      );
+    } else {
+      sections.push(rawText);
+    }
   }
+  const cleaned = sections.join('\\n\\n--- PAGE BREAK ---\\n\\n');
   const docIn = document.getElementById('doc-input');
   const docOut = document.getElementById('doc-output');
   if (docIn) docIn.value = cleaned;
   if (docOut) {
     docOut.value = currentTool?.slug === 'redact-pdf' ? redactSensitiveText(cleaned) : convertTableToMarkdown(cleaned);
   }
+}
+
+document.getElementById('doc-file-input')?.addEventListener('change', (e) => {
+  handleDocFiles(e.target.files);
 });
 
 document.getElementById('doc-sample-table-btn')?.addEventListener('click', () => {
@@ -1690,8 +1771,25 @@ document.getElementById('doc-redact-btn')?.addEventListener('click', () => {
 
 document.getElementById('doc-download-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const out = document.getElementById('doc-output')?.value || document.getElementById('doc-input')?.value || '';
+  const out = document.getElementById('doc-output')?.value || document.getElementById('doc-input')?.value || 'OmniTools Document';
   const ext = currentTool?.outputExt || 'md';
+  if (ext === 'pdf') {
+    const pageCanvas = renderTextDocumentCanvas(out);
+    const pdfBlob = canvasToPdfBlob(pageCanvas);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(pdfBlob);
+    a.download = (currentTool?.slug || 'document') + '.pdf';
+    a.click();
+    return;
+  }
+  if (ext === 'png' || ext === 'jpg') {
+    const pageCanvas = renderTextDocumentCanvas(out);
+    const a = document.createElement('a');
+    a.href = pageCanvas.toDataURL(ext === 'jpg' ? 'image/jpeg' : 'image/png', 0.92);
+    a.download = (currentTool?.slug || 'document') + '.' + ext;
+    a.click();
+    return;
+  }
   const mime = ext === 'txt' ? 'text/plain' : 'text/markdown';
   const blob = new Blob([out], { type: mime });
   const a = document.createElement('a');
@@ -1709,18 +1807,21 @@ function renderDxfPreview() {
   if (preview) preview.innerHTML = convertDxfToSvg(raw);
 }
 
-document.getElementById('dxf-file-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleDxfFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
+  syncFilesToInput('dxf-file-input', files);
   const text = await files[0].text();
   const input = document.getElementById('dxf-input');
   if (input) input.value = text;
   renderDxfPreview();
+}
+
+document.getElementById('dxf-file-input')?.addEventListener('change', (e) => {
+  handleDxfFiles(e.target.files);
 });
 
 document.getElementById('dxf-sample-btn')?.addEventListener('click', () => {
@@ -1732,6 +1833,33 @@ document.getElementById('dxf-convert-btn')?.addEventListener('click', renderDxfP
 document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
   const svg = document.getElementById('dxf-preview')?.innerHTML || convertDxfToSvg(sampleDxf);
+  const ext = currentTool?.outputExt || 'svg';
+  if (ext === 'png' || ext === 'pdf') {
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 900;
+      c.height = 600;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#090a0d';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      if (ext === 'pdf') {
+        a.href = URL.createObjectURL(canvasToPdfBlob(c));
+        a.download = (currentTool?.slug || 'blueprint') + '.pdf';
+      } else {
+        a.href = c.toDataURL('image/png');
+        a.download = (currentTool?.slug || 'blueprint') + '.png';
+      }
+      a.click();
+    };
+    img.src = url;
+    return;
+  }
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1742,6 +1870,7 @@ document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
 // --- Engine 4: Audio / Video Waveform & Transcription Studio ---
 const waveCanvas = document.getElementById('media-waveform');
 const waveCtx = waveCanvas?.getContext('2d');
+let decodedAudioBuffer = null;
 
 function drawDemoWaveform(samples = null, label = '44.1kHz 16-bit PCM • Local Stream Ready') {
   if (!waveCanvas || !waveCtx) return;
@@ -1768,19 +1897,22 @@ function drawDemoWaveform(samples = null, label = '44.1kHz 16-bit PCM • Local 
   waveCtx.fillText(label, 14, H - 8);
 }
 
-document.getElementById('media-input')?.addEventListener('change', async (e) => {
-  const files = e.target.files;
+async function handleMediaFiles(files) {
   if (!files || !files.length) return;
   if (files.length > 1 && !isProUnlocked()) {
     openProDialog('batch');
-    e.target.value = '';
     return;
   }
   const file = files[0];
   if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
     openProDialog('filesize');
-    e.target.value = '';
     return;
+  }
+  syncFilesToInput('media-input', files);
+  const dropHint = document.getElementById('media-drop-hint');
+  if (dropHint) {
+    dropHint.textContent = '✓ LOADED MEDIA: ' + file.name + ' (' + Math.max(1, Math.round(file.size / 1024)) + ' KB) — Drag/drop or Ctrl+V to replace';
+    dropHint.style.color = '#ff9d5c';
   }
   const transcriptEl = document.getElementById('media-transcript');
   try {
@@ -1789,6 +1921,7 @@ document.getElementById('media-input')?.addEventListener('change', async (e) => 
     if (AudioCtx) {
       const actx = new AudioCtx();
       const audioBuffer = await actx.decodeAudioData(arrayBuf);
+      decodedAudioBuffer = audioBuffer;
       const chData = audioBuffer.getChannelData(0);
       drawDemoWaveform(chData, file.name + ' • ' + audioBuffer.duration.toFixed(1) + 's • ' + audioBuffer.sampleRate + 'Hz');
       if (transcriptEl) {
@@ -1801,12 +1934,16 @@ document.getElementById('media-input')?.addEventListener('change', async (e) => 
       return;
     }
   } catch {
-    // Fallback for container formats
+    decodedAudioBuffer = null;
   }
   drawDemoWaveform(null, 'Loaded: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)');
   if (transcriptEl) {
     transcriptEl.value = '1\\n00:00:00,000 --> 00:00:05,000\\n[Media Stream Ready: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)]';
   }
+}
+
+document.getElementById('media-input')?.addEventListener('change', (e) => {
+  handleMediaFiles(e.target.files);
 });
 
 document.getElementById('media-transcribe-btn')?.addEventListener('click', () => {
@@ -1838,8 +1975,11 @@ document.getElementById('media-export-txt-btn')?.addEventListener('click', () =>
 
 document.getElementById('media-synth-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const sampleRate = 44100;
-  const numSamples = sampleRate;
+  const sampleRate = decodedAudioBuffer ? decodedAudioBuffer.sampleRate : 44100;
+  const srcChannel = decodedAudioBuffer ? decodedAudioBuffer.getChannelData(0) : null;
+  const maxFrames = sampleRate * 30;
+  const numSamples = srcChannel ? Math.min(srcChannel.length, maxFrames) : sampleRate;
+  const isReversed = currentTool?.slug === 'reverse-video';
   const buffer = new ArrayBuffer(44 + numSamples * 2);
   const view = new DataView(buffer);
   const writeStr = (offset, str) => {
@@ -1858,8 +1998,10 @@ document.getElementById('media-synth-btn')?.addEventListener('click', () => {
   writeStr(36, 'data');
   view.setUint32(40, numSamples * 2, true);
   for (let i = 0; i < numSamples; i++) {
-    const sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.35;
-    view.setInt16(44 + i * 2, sample * 32767, true);
+    const idx = isReversed ? (numSamples - 1 - i) : i;
+    const rawSample = srcChannel ? srcChannel[idx] : Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.35;
+    const clamped = Math.max(-1, Math.min(1, rawSample));
+    view.setInt16(44 + i * 2, clamped * 32767, true);
   }
   const blob = new Blob([buffer], { type: 'audio/wav' });
   const a = document.createElement('a');
@@ -1870,14 +2012,49 @@ document.getElementById('media-synth-btn')?.addEventListener('click', () => {
 
 // --- Engine 5: 3D Rig Stage ---
 const mmdCanvas = document.getElementById('mmd-canvas');
+let loadedRigData = {
+  rig: 'mmd-humanoid-v1',
+  fileName: 'default-humanoid.pmx',
+  vertices: 12480,
+  bones: { head: [0, 1.5, 0], spine: [0, 1.0, 0], leftArm: [-0.4, 1.2, 0], rightArm: [0.4, 1.2, 0] }
+};
+
+async function handleMmdFiles(files) {
+  if (!files || !files.length) return;
+  const file = files[0];
+  if (file.size > 15 * 1024 * 1024 && !isProUnlocked()) {
+    openProDialog('filesize');
+    return;
+  }
+  syncFilesToInput('mmd-file-input', files);
+  try {
+    const text = await file.text();
+    if (file.name.endsWith('.json')) {
+      const parsed = JSON.parse(text);
+      loadedRigData = { ...loadedRigData, ...parsed, fileName: file.name };
+    } else if (file.name.endsWith('.obj')) {
+      const vCount = (text.match(/^v\\s+/gm) || []).length;
+      loadedRigData = { ...loadedRigData, fileName: file.name, vertices: vCount || 1024 };
+    } else {
+      loadedRigData = { ...loadedRigData, fileName: file.name, vertices: Math.max(256, Math.round(file.size / 32)) };
+    }
+  } catch {
+    loadedRigData = { ...loadedRigData, fileName: file.name };
+  }
+}
+
+document.getElementById('mmd-file-input')?.addEventListener('change', (e) => {
+  handleMmdFiles(e.target.files);
+});
+
 if (mmdCanvas) {
   const mCtx = mmdCanvas.getContext('2d');
   let angle = 0;
   function drawMmd() {
     angle += 0.025;
     mCtx.clearRect(0, 0, mmdCanvas.width, mmdCanvas.height);
-    mCtx.strokeStyle = '#f0f2f5';
-    mCtx.lineWidth = 2;
+    mCtx.strokeStyle = '#ff6b00';
+    mCtx.lineWidth = 2.2;
     const cx = mmdCanvas.width / 2;
     const sway = Math.sin(angle) * 24;
     mCtx.beginPath();
@@ -1887,10 +2064,13 @@ if (mmdCanvas) {
     mCtx.moveTo(cx - 48, 105 + sway * 0.3);
     mCtx.lineTo(cx + 48, 105 - sway * 0.3);
     mCtx.moveTo(cx, 155);
-    mCtx.lineTo(cx - 32, 235);
+    mCtx.lineTo(cx - 32, 225);
     mCtx.moveTo(cx, 155);
-    mCtx.lineTo(cx + 32, 235);
+    mCtx.lineTo(cx + 32, 225);
     mCtx.stroke();
+    mCtx.fillStyle = '#949cae';
+    mCtx.font = '500 11px "JetBrains Mono", monospace';
+    mCtx.fillText('RIG: ' + loadedRigData.fileName + ' • VERTICES: ' + loadedRigData.vertices, 14, mmdCanvas.height - 10);
     requestAnimationFrame(drawMmd);
   }
   requestAnimationFrame(drawMmd);
@@ -1898,12 +2078,129 @@ if (mmdCanvas) {
 
 document.getElementById('mmd-export-btn')?.addEventListener('click', () => {
   if (!recordExportOrPromptPaywall('quota')) return;
-  const poseJson = JSON.stringify({ rig: 'mmd-humanoid-v1', timestamp: Date.now(), bones: { head: [0, 1.5, 0], spine: [0, 1.0, 0] } }, null, 2);
+  const poseJson = JSON.stringify({ ...loadedRigData, timestamp: Date.now() }, null, 2);
   const blob = new Blob([poseJson], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'mmd-pose.json';
+  a.download = (currentTool?.slug || 'mmd-pose') + '.json';
   a.click();
+});
+
+// --- Universal Drag & Drop + Clipboard Paste (Ctrl+V / Cmd+V) Router ---
+function routeIncomingFiles(files) {
+  if (!files || !files.length) return;
+  const eng = currentTool?.engine || 'image-canvas';
+  if (eng === 'media-audio-video') return handleMediaFiles(files);
+  if (eng === 'doc-markdown') return handleDocFiles(files);
+  if (eng === 'cad-dxf') return handleDxfFiles(files);
+  if (eng === '3d-stage') return handleMmdFiles(files);
+  return handleImageFiles(files);
+}
+
+const workbenchCell = document.querySelector('.cell-workbench');
+if (workbenchCell) {
+  workbenchCell.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    workbenchCell.classList.add('drop-active');
+  });
+  workbenchCell.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    workbenchCell.classList.add('drop-active');
+  });
+  workbenchCell.addEventListener('dragleave', (e) => {
+    if (!workbenchCell.contains(e.relatedTarget)) {
+      workbenchCell.classList.remove('drop-active');
+    }
+  });
+  workbenchCell.addEventListener('drop', (e) => {
+    e.preventDefault();
+    workbenchCell.classList.remove('drop-active');
+    if (e.dataTransfer?.files?.length) {
+      routeIncomingFiles(e.dataTransfer.files);
+    }
+  });
+}
+
+window.addEventListener('paste', (e) => {
+  const clipFiles = e.clipboardData?.files;
+  if (clipFiles && clipFiles.length > 0) {
+    e.preventDefault();
+    routeIncomingFiles(clipFiles);
+    return;
+  }
+  const activeTag = document.activeElement?.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+  const pastedText = e.clipboardData?.getData('text/plain');
+  if (pastedText && pastedText.trim()) {
+    const eng = currentTool?.engine || 'image-canvas';
+    if (eng === 'media-audio-video') {
+      const tEl = document.getElementById('media-transcript');
+      if (tEl) tEl.value = pastedText.trim();
+      drawDemoWaveform(null, 'Pasted Clipboard Media Stream (' + pastedText.trim().length + ' chars)');
+    } else if (eng === 'doc-markdown') {
+      const docIn = document.getElementById('doc-input');
+      const docOut = document.getElementById('doc-output');
+      if (docIn) docIn.value = pastedText;
+      if (docOut) docOut.value = currentTool?.slug === 'redact-pdf' ? redactSensitiveText(pastedText) : convertTableToMarkdown(pastedText);
+    } else if (eng === 'cad-dxf') {
+      const dxfIn = document.getElementById('dxf-input');
+      if (dxfIn) dxfIn.value = pastedText;
+      renderDxfPreview();
+    }
+  }
+});
+
+document.getElementById('media-paste-btn')?.addEventListener('click', async () => {
+  try {
+    if (navigator.clipboard?.read) {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const mediaType = item.types.find((t) => t.startsWith('audio/') || t.startsWith('video/') || t.startsWith('image/')) || item.types[0];
+        if (mediaType && !mediaType.startsWith('text/')) {
+          const blob = await item.getType(mediaType);
+          const ext = (mediaType.split('/')[1] || 'wav').split(';')[0];
+          const file = new File([blob], 'pasted-media.' + ext, { type: mediaType });
+          await handleMediaFiles([file]);
+          return;
+        }
+      }
+    }
+    if (navigator.clipboard?.readText) {
+      const txt = await navigator.clipboard.readText();
+      if (txt && txt.trim()) {
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const file = new File([blob], 'pasted-stream.txt', { type: 'text/plain' });
+        await handleMediaFiles([file]);
+        const tEl = document.getElementById('media-transcript');
+        if (tEl) tEl.value = txt.trim();
+      }
+    }
+  } catch {
+    const dropHint = document.getElementById('media-drop-hint');
+    if (dropHint) dropHint.textContent = 'Press Ctrl+V (or Cmd+V) on your keyboard to paste media from clipboard';
+  }
+});
+
+document.getElementById('share-tool-btn')?.addEventListener('click', async () => {
+  const shareUrl = window.location.href;
+  const shareTitle = document.title;
+  const shareText = (currentTool ? currentTool.title : 'OmniTools') + ' — 100% local in browser RAM (zero cloud uploads):';
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+      return;
+    } catch {}
+  }
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    const btn = document.getElementById('share-tool-btn');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied Link ✓';
+      setTimeout(() => { btn.textContent = orig; }, 1600);
+    }
+  } catch {}
 });
 
 updateMonetizationUI();
@@ -1954,6 +2251,10 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
   <meta property="og:description" content="${desc}" />
   <meta property="og:url" content="${canonical}" />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="OmniTools Local AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${desc}" />
   <script type="application/ld+json">${jsonLd}</script>
   <link rel="stylesheet" href="${basePath}/assets/bento.css" />
 </head>
@@ -1975,6 +2276,7 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
         <a href="${basePath}/dxf-to-svg/" class="nav-chip">CAD DXF</a>
         <a href="${basePath}/redact-pdf/" class="nav-chip">PII Redact</a>
         <a href="${basePath}/remove-image-background/" class="nav-chip">Background</a>
+        <button type="button" id="share-tool-btn" class="btn" title="Share or copy link to this local tool">Share Tool</button>
         <button type="button" id="nav-pro-btn" class="btn btn-accent">Unlock Pro — $9/mo</button>
       </nav>
     </header>
@@ -1995,7 +2297,7 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
         <!-- Engine 1: Image Studio -->
         <div id="engine-image-canvas">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="img-input" accept="image/*" multiple class="btn" title="Choose image file(s)" />
+            <input type="file" id="img-input" accept="image/*" multiple class="btn" title="Choose, drag &amp; drop, or paste image(s)" />
             <button type="button" id="img-demo-btn" class="btn">Reset Graphic</button>
             <label class="select-pill">
               Format
@@ -2003,6 +2305,8 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
                 <option value="image/png">PNG</option>
                 <option value="image/jpeg">JPG</option>
                 <option value="image/webp">WebP</option>
+                <option value="image/avif">AVIF</option>
+                <option value="image/x-icon">ICO</option>
                 <option value="application/pdf">PDF</option>
               </select>
             </label>
@@ -2035,7 +2339,7 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
         <!-- Engine 2: Document, PDF & Optical OCR Studio -->
         <div id="engine-doc-markdown" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="doc-file-input" accept="image/*,.pdf,.csv,.tsv,.txt,.md,.json,.docx,.epub" multiple class="btn" title="Upload Image for OCR, PDF, CSV, or Text Document" />
+            <input type="file" id="doc-file-input" accept="image/*,.pdf,.csv,.tsv,.txt,.md,.json,.docx,.epub" multiple class="btn" title="Upload, drag &amp; drop, or paste Image for OCR, PDF, CSV, or Text Document" />
             <button type="button" id="doc-ocr-sample-btn" class="btn">Demo OCR Image</button>
             <button type="button" id="doc-sample-table-btn" class="btn">Table Sample</button>
             <button type="button" id="doc-sample-pii-btn" class="btn">PII Contract</button>
@@ -2045,10 +2349,10 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
           </div>
           <div id="doc-ocr-stage" class="stage-surface" style="min-height:150px;margin-bottom:12px;flex-direction:column;gap:8px;display:none">
             <canvas id="ocr-preview-canvas" width="640" height="130" style="max-width:100%;height:auto;border-radius:6px;display:block"></canvas>
-            <div id="ocr-status-text" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-secondary)">OCR ENGINE READY — Upload an image (PNG/JPG/WebP) or click "Demo OCR Image"</div>
+            <div id="ocr-status-text" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-secondary)">OCR ENGINE READY — Upload, drag &amp; drop, or paste (Ctrl+V) an image</div>
           </div>
           <div class="editor-split">
-            <textarea id="doc-input" rows="9" placeholder="Upload an image above for OCR, drop a PDF/CSV, or paste raw text..."></textarea>
+            <textarea id="doc-input" rows="9" placeholder="Upload, drag &amp; drop, or paste (Ctrl+V) an image for OCR, PDF/CSV, or raw text..."></textarea>
             <textarea id="doc-output" rows="9" readonly placeholder="Extracted OCR text, Markdown table, or redacted output..."></textarea>
           </div>
         </div>
@@ -2056,13 +2360,13 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
         <!-- Engine 3: CAD DXF Vector Plotter -->
         <div id="engine-cad-dxf" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="dxf-file-input" accept=".dxf,.txt" class="btn" title="Upload AutoCAD .DXF file" />
+            <input type="file" id="dxf-file-input" accept=".dxf,.txt" class="btn" title="Upload, drag &amp; drop, or paste AutoCAD .DXF file" />
             <button type="button" id="dxf-sample-btn" class="btn">Load CNC Bracket (.DXF)</button>
             <button type="button" id="dxf-convert-btn" class="btn btn-primary">Plot Vector SVG</button>
             <button type="button" id="dxf-download-btn" class="btn btn-accent">Export .SVG</button>
           </div>
           <div class="editor-split">
-            <textarea id="dxf-input" rows="11" placeholder="Upload a .DXF file above or paste ASCII AutoCAD .DXF entities..."></textarea>
+            <textarea id="dxf-input" rows="11" placeholder="Upload, drag &amp; drop, or paste ASCII AutoCAD .DXF entities..."></textarea>
             <div id="dxf-preview" class="stage-surface" style="min-height:230px"></div>
           </div>
         </div>
@@ -2070,21 +2374,23 @@ export function renderBentoHtml(tool, { baseUrl = 'https://verdyaa.github.io/omn
         <!-- Engine 4: Audio / Video Decoder & Transcription Studio -->
         <div id="engine-media-audio-video" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="media-input" accept="audio/*,video/*" class="btn" title="Upload Audio or Video file" />
+            <input type="file" id="media-input" accept="audio/*,video/*" class="btn" title="Choose, drag &amp; drop, or paste Audio/Video file" />
+            <button type="button" id="media-paste-btn" class="btn" title="Paste copied audio/video file or stream from clipboard">Paste Media (Ctrl+V)</button>
             <button type="button" id="media-transcribe-btn" class="btn">Transcribe / SRT</button>
             <button type="button" id="media-synth-btn" class="btn btn-primary">Export 44.1kHz .WAV</button>
             <button type="button" id="media-export-txt-btn" class="btn btn-accent">Export .TXT / .SRT</button>
           </div>
-          <div class="stage-surface" style="flex-direction:column;gap:12px;min-height:240px">
+          <div id="media-dropzone" class="stage-surface" style="flex-direction:column;gap:10px;min-height:240px">
+            <div id="media-drop-hint" class="drop-paste-hint">DRAG &amp; DROP AUDIO / VIDEO FILE HERE • OR PRESS CTRL+V (CMD+V) TO PASTE MEDIA</div>
             <canvas id="media-waveform" width="640" height="110" style="max-width:100%;height:auto;border-radius:6px;display:block"></canvas>
-            <textarea id="media-transcript" rows="4" style="width:100%;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:6px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:0.78rem" placeholder="Upload an audio/video file above to decode waveform &amp; generate transcript / SRT subtitles..."></textarea>
+            <textarea id="media-transcript" rows="4" style="width:100%;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:6px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:0.78rem" placeholder="Drag &amp; drop, paste (Ctrl+V), or choose an audio/video file above to decode waveform &amp; generate transcript / SRT subtitles..."></textarea>
           </div>
         </div>
 
         <!-- Engine 5: 3D Rig Stage -->
         <div id="engine-3d-stage" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="mmd-file-input" accept=".pmx,.pmd,.vmd,.obj,.json" class="btn" title="Upload 3D Model or Pose" />
+            <input type="file" id="mmd-file-input" accept=".pmx,.pmd,.vmd,.obj,.json" class="btn" title="Upload, drag &amp; drop, or paste 3D Model or Pose" />
             <button type="button" id="mmd-export-btn" class="btn btn-primary">Export Pose (.JSON)</button>
           </div>
           <div class="stage-surface">
@@ -2283,6 +2589,8 @@ export function buildStaticSite({
     .join('\n')}\n</urlset>`;
   writeFileSync(join(outDir, 'sitemap.xml'), sitemap, 'utf8');
   writeFileSync(join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`, 'utf8');
+  const indexNowKey = '4a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d';
+  writeFileSync(join(outDir, `${indexNowKey}.txt`), indexNowKey, 'utf8');
 
   return { pagesBuilt: 1 + TOOLS_CATALOG.length, outDir, sampleHtml };
 }
