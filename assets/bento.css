@@ -383,6 +383,44 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  position: relative;
+}
+
+#work-canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+input[type="file"] {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 5px 12px;
+  border-radius: 4px;
+  background: linear-gradient(180deg var(--in-oklab), #262a37, #181b24);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-right: 10px;
+  transition: all 0.1s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: linear-gradient(180deg var(--in-oklab), #2e3344, #1d212c);
+  color: #fff;
+  border-color: #4b5568;
 }
 
 .editor-split {
