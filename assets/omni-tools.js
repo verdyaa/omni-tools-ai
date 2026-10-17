@@ -3,26 +3,86 @@ const FEATURED_SLUGS = new Set(["pdf-to-markdown","dxf-to-svg","redact-pdf","rem
 const PARTNER_URLS = {"remove-image-background":"https://www.photoroom.com/?utm_source=omnitools","audio-to-text":"https://turboscribe.ai/?utm_source=omnitools","video-to-text":"https://www.descript.com/?utm_source=omnitools","image-to-text":"https://mathpix.com/?utm_source=omnitools","redact-pdf":"https://www.redactable.com/?utm_source=omnitools","pdf-to-markdown":"https://mathpix.com/?utm_source=omnitools","word-to-markdown":"https://cloud.llamaindex.ai/?utm_source=omnitools","excel-to-markdown":"https://mathpix.com/?utm_source=omnitools","dxf-to-svg":"https://www.scan2cad.com/?utm_source=omnitools","dxf-to-pdf":"https://www.autodwg.com/?utm_source=omnitools","dxf-to-png":"https://www.scan2cad.com/?utm_source=omnitools","compress-image":"https://tinypng.com/?utm_source=omnitools","upscale-image":"https://letsenhance.io/?utm_source=omnitools"};
 const BASE_PATH = "/omni-tools-ai";
 
+// Clear legacy fake unlock keys from early development
+try {
+  localStorage.removeItem('omnitools_pro_license');
+  localStorage.removeItem('omnitools_pro_key');
+} catch {}
+
 const FREE_DAILY_LIMIT = 2;
-const STORAGE_KEY_PRO = 'omnitools_pro_license';
-const STORAGE_KEY_QUOTA = 'omnitools_daily_exports_' + new Date().toISOString().slice(0, 10);
+const STORAGE_KEY_PRO = 'omnitools_pro_verified_v3';
+const STORAGE_KEY_QUOTA_PREFIX = 'omnitools_daily_exports_';
+
+const GUMROAD_PRODUCTS = [
+  { id: 'IWq3y0TS5f0qACrpBmCung==', name: 'Lifetime Pass ($29)', type: 'lifetime', permalink: 'xlqmp' },
+  { id: 'dcjKFDn4SlOJSRSXInQIrQ==', name: 'Monthly Pass ($9/mo)', type: 'monthly', permalink: 'etvreq' }
+];
+
+function computeLicenseChecksum(key, pid) {
+  if (!key || !pid) return '';
+  const salt = 'OMNI_GUMROAD_VERIFIED_SECURE_2026_#$!';
+  const str = key.trim().toUpperCase() + ':' + pid.trim() + ':' + salt;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
 
 function isProUnlocked() {
-  return Boolean(localStorage.getItem(STORAGE_KEY_PRO));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PRO);
+    if (!raw) return false;
+    const payload = JSON.parse(raw);
+    if (!payload || typeof payload !== 'object') {
+      localStorage.removeItem(STORAGE_KEY_PRO);
+      return false;
+    }
+    const { k, pid, sig, exp } = payload;
+    if (!k || !pid || !sig) {
+      localStorage.removeItem(STORAGE_KEY_PRO);
+      return false;
+    }
+    if (k.toUpperCase().startsWith('OMNI-PRO')) {
+      localStorage.removeItem(STORAGE_KEY_PRO);
+      return false;
+    }
+    const expectedSig = computeLicenseChecksum(k, pid);
+    if (!expectedSig || sig !== expectedSig) {
+      localStorage.removeItem(STORAGE_KEY_PRO);
+      return false;
+    }
+    if (typeof exp === 'number' && Date.now() > exp) {
+      localStorage.removeItem(STORAGE_KEY_PRO);
+      return false;
+    }
+    return true;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY_PRO);
+    return false;
+  }
+}
+
+function getTodayKey() {
+  return STORAGE_KEY_QUOTA_PREFIX + new Date().toISOString().slice(0, 10);
 }
 
 function getExportsUsedToday() {
-  return Number(localStorage.getItem(STORAGE_KEY_QUOTA) || '0');
+  return Number(localStorage.getItem(getTodayKey()) || '0');
 }
 
-function recordExportOrPromptPaywall(requiresProFeature = false) {
+function recordExportOrPromptPaywall(reason = 'quota') {
   if (isProUnlocked()) return true;
   const used = getExportsUsedToday();
-  if (requiresProFeature || used >= FREE_DAILY_LIMIT) {
-    openProDialog();
+  if (used >= FREE_DAILY_LIMIT) {
+    openProDialog('quota');
     return false;
   }
-  localStorage.setItem(STORAGE_KEY_QUOTA, String(used + 1));
+  localStorage.setItem(getTodayKey(), String(used + 1));
   updateMonetizationUI();
   return true;
 }
@@ -31,50 +91,81 @@ function updateMonetizationUI() {
   const pro = isProUnlocked();
   const used = getExportsUsedToday();
   const badge = document.getElementById('tier-badge');
+  const topStatus = document.getElementById('top-status-indicator');
   const quotaText = document.getElementById('quota-text');
   const quotaFill = document.getElementById('quota-fill');
   const upgradeBtn = document.getElementById('open-pro-btn');
+  const deactBtn = document.getElementById('deactivate-license-btn');
 
   if (pro) {
     if (badge) {
       badge.textContent = 'PRO UNLOCKED';
       badge.className = 'badge-pill badge-pro';
     }
-    if (quotaText) quotaText.textContent = 'Unlimited Batch & 4x Hi-DPI Active';
+    if (topStatus) {
+      topStatus.className = 'status-led pro';
+      topStatus.title = 'OmniTools Pro Active';
+    }
+    if (quotaText) quotaText.textContent = 'Unlimited Exports • 2x/4x Hi-DPI & Batch Active';
     if (quotaFill) {
       quotaFill.style.width = '100%';
       quotaFill.style.background = '#10b981';
     }
-    if (upgradeBtn) upgradeBtn.textContent = 'Pro Pass Active ✓';
+    if (upgradeBtn) {
+      upgradeBtn.textContent = 'Pro License Verified ✓';
+      upgradeBtn.className = 'btn';
+    }
+    if (deactBtn) deactBtn.style.display = 'inline-flex';
   } else {
     const remaining = Math.max(0, FREE_DAILY_LIMIT - used);
     if (badge) {
-      badge.textContent = 'FREE TIER';
-      badge.className = 'badge-pill';
+      badge.textContent = remaining > 0 ? 'FREE TIER (' + remaining + '/2 LEFT)' : 'LOCKED (0/2 EXPORTS)';
+      badge.className = remaining > 0 ? 'badge-pill' : 'badge-pill badge-locked';
+    }
+    if (topStatus) {
+      topStatus.className = remaining > 0 ? 'status-led free' : 'status-led locked';
+      topStatus.title = remaining + ' of ' + FREE_DAILY_LIMIT + ' free exports left';
     }
     if (quotaText) quotaText.textContent = remaining + ' of ' + FREE_DAILY_LIMIT + ' free exports remaining today';
     if (quotaFill) {
       quotaFill.style.width = Math.min(100, (used / FREE_DAILY_LIMIT) * 100) + '%';
+      quotaFill.style.background = remaining > 0 ? 'var(--accent)' : 'var(--rose)';
     }
+    if (upgradeBtn) {
+      upgradeBtn.textContent = 'Unlock OmniTools Pro — $9/mo or $29 once';
+      upgradeBtn.className = 'btn btn-accent';
+    }
+    if (deactBtn) deactBtn.style.display = 'none';
   }
 }
 
-// Check URL for ?pro_key= redirect activation
-const params = new URLSearchParams(window.location.search);
-if (params.get('pro_key')) {
-  localStorage.setItem(STORAGE_KEY_PRO, params.get('pro_key'));
-}
-
-// Dialog setup + Safari fallback for <dialog closedby="any">
 const proDialog = document.getElementById('pro-dialog');
-function openProDialog() {
+function openProDialog(reason = 'default') {
+  const banner = document.getElementById('pro-dialog-reason');
+  if (banner) {
+    if (reason === 'quota') {
+      banner.innerHTML = '<strong>🔒 DAILY FREE LIMIT REACHED:</strong> You have completed ' + FREE_DAILY_LIMIT + ' of ' + FREE_DAILY_LIMIT + ' free exports today. Upgrade to OmniTools Pro for unlimited daily conversions.';
+      banner.style.display = 'block';
+    } else if (reason === 'batch') {
+      banner.innerHTML = '<strong>🔒 BATCH MODE LOCKED:</strong> Processing multiple files concurrently is an OmniTools Pro feature. Single files run free.';
+      banner.style.display = 'block';
+    } else if (reason === 'upscale') {
+      banner.innerHTML = '<strong>🔒 2X / 4X HI-DPI LOCKED:</strong> Super-resolution upscaling is an OmniTools Pro feature. Free tier exports at 1x standard resolution.';
+      banner.style.display = 'block';
+    } else if (reason === 'filesize') {
+      banner.innerHTML = '<strong>🔒 FILE OVER 15MB:</strong> Files over 15MB require OmniTools Pro memory allocation (up to 1GB locally in RAM).';
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
   if (proDialog && typeof proDialog.showModal === 'function') {
     proDialog.showModal();
   }
 }
 
-document.getElementById('open-pro-btn')?.addEventListener('click', openProDialog);
-document.getElementById('nav-pro-btn')?.addEventListener('click', openProDialog);
+document.getElementById('open-pro-btn')?.addEventListener('click', () => openProDialog('general'));
+document.getElementById('nav-pro-btn')?.addEventListener('click', () => openProDialog('general'));
 
 if (proDialog && !('closedBy' in HTMLDialogElement.prototype)) {
   proDialog.addEventListener('click', (event) => {
@@ -90,63 +181,104 @@ if (proDialog && !('closedBy' in HTMLDialogElement.prototype)) {
   });
 }
 
+async function verifyGumroadLicense(key) {
+  const cleanKey = (key || '').trim();
+  if (!cleanKey) return { ok: false, error: 'Please enter a valid license key.' };
+  if (cleanKey.toUpperCase().startsWith('OMNI-PRO')) {
+    return { ok: false, error: 'Mock keys are not valid. Enter the authentic license key from your Gumroad receipt.' };
+  }
+
+  for (const prod of GUMROAD_PRODUCTS) {
+    try {
+      const res = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          product_id: prod.id,
+          license_key: cleanKey,
+          increment_uses_count: 'false'
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data && data.success) {
+        const p = data.purchase || {};
+        if (p.refunded || p.disputed || p.chargebacked) {
+          return { ok: false, error: 'This license has been refunded or disputed.' };
+        }
+        if (p.subscription_cancelled_at || p.subscription_failed_at) {
+          return { ok: false, error: 'This monthly subscription has expired or was cancelled.' };
+        }
+        const sig = computeLicenseChecksum(cleanKey, prod.id);
+        const payload = {
+          k: cleanKey,
+          pid: prod.id,
+          prodName: prod.name,
+          ts: Date.now(),
+          exp: prod.type === 'monthly' ? Date.now() + 35 * 86400 * 1000 : null,
+          sig
+        };
+        localStorage.setItem(STORAGE_KEY_PRO, JSON.stringify(payload));
+        return { ok: true, product: prod, purchase: p };
+      }
+    } catch (e) {
+      console.warn('Gumroad verification attempt error:', e);
+    }
+  }
+  return { ok: false, error: 'Invalid license key. Check your Gumroad receipt email or buy a pass.' };
+}
+
 document.getElementById('activate-license-btn')?.addEventListener('click', async () => {
   const input = document.getElementById('license-input');
   const statusEl = document.getElementById('license-status');
   const key = (input?.value || '').trim();
   if (!key) return;
 
-  if (key.toUpperCase().startsWith('OMNI-PRO')) {
-    localStorage.setItem(STORAGE_KEY_PRO, key);
+  if (statusEl) {
+    statusEl.textContent = 'Verifying license with Gumroad server...';
+    statusEl.style.color = 'var(--text-secondary)';
+  }
+
+  const result = await verifyGumroadLicense(key);
+  if (result.ok) {
     updateMonetizationUI();
-    if (statusEl) statusEl.textContent = 'License verified. Pro batch & 4x Hi-DPI unlocked.';
-    setTimeout(() => proDialog?.close(), 600);
-    return;
-  }
-
-  const GUMROAD_PRODUCT_IDS = ['IWq3y0TS5f0qACrpBmCung==', 'dcjKFDn4SlOJSRSXInQIrQ=='];
-  for (const pid of GUMROAD_PRODUCT_IDS) {
-    try {
-      const res = await fetch('https://api.gumroad.com/v2/licenses/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          product_id: pid,
-          license_key: key
-        })
-      });
-      const data = await res.json();
-      if (data && data.success) {
-        localStorage.setItem(STORAGE_KEY_PRO, key);
-        updateMonetizationUI();
-        if (statusEl) statusEl.textContent = 'Gumroad license verified! Pro unlocked.';
-        setTimeout(() => proDialog?.close(), 600);
-        return;
-      }
-    } catch {
-      // try next
+    if (statusEl) {
+      statusEl.textContent = '✓ ' + result.product.name + ' verified! Pro unlocked.';
+      statusEl.style.color = 'var(--emerald)';
+    }
+    setTimeout(() => proDialog?.close(), 900);
+  } else {
+    if (statusEl) {
+      statusEl.textContent = '✖ ' + result.error;
+      statusEl.style.color = 'var(--rose)';
     }
   }
-
-  try {
-    const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ license_key: key })
-    });
-    const data = await res.json();
-    if (data && data.valid) {
-      localStorage.setItem(STORAGE_KEY_PRO, key);
-      updateMonetizationUI();
-      if (statusEl) statusEl.textContent = 'License verified! Pro unlocked.';
-      setTimeout(() => proDialog?.close(), 600);
-      return;
-    }
-  } catch {
-    // Offline fallback
-  }
-  if (statusEl) statusEl.textContent = 'Invalid license key. Check your Gumroad receipt.';
 });
+
+function deactivatePro() {
+  localStorage.removeItem(STORAGE_KEY_PRO);
+  updateMonetizationUI();
+  const statusEl = document.getElementById('license-status');
+  if (statusEl) {
+    statusEl.textContent = 'License cleared. Workspace returned to Free Tier (locked).';
+    statusEl.style.color = 'var(--text-secondary)';
+  }
+  const input = document.getElementById('license-input');
+  if (input) input.value = '';
+}
+
+document.getElementById('deactivate-license-btn')?.addEventListener('click', deactivatePro);
+document.getElementById('dialog-deactivate-btn')?.addEventListener('click', deactivatePro);
+
+// If redirected with ?license_key=, verify against Gumroad (no backdoor)
+const params = new URLSearchParams(window.location.search);
+const incomingKey = params.get('license_key') || params.get('key');
+if (incomingKey && !isProUnlocked()) {
+  const input = document.getElementById('license-input');
+  if (input) input.value = incomingKey;
+  verifyGumroadLicense(incomingKey).then((result) => {
+    if (result.ok) updateMonetizationUI();
+  });
+}
 
 function convertTableToMarkdown(rawText) {
   const lines = String(rawText || '').trim().split(/\r?\n/).filter(Boolean);
@@ -193,14 +325,14 @@ function convertDxfToSvg(dxfText) {
         if (code === '20') cy = val;
         if (code === '40') r = val;
       }
-      shapes.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#ff5722" stroke-width="2" />');
+      shapes.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#ff6b00" stroke-width="2" />');
     }
   }
   if (shapes.length === 0) {
     shapes.push('<rect x="30" y="30" width="240" height="140" fill="none" stroke="#f4f4f6" stroke-width="2" />');
-    shapes.push('<circle cx="150" cy="100" r="42" fill="none" stroke="#ff5722" stroke-width="2" />');
+    shapes.push('<circle cx="150" cy="100" r="42" fill="none" stroke="#ff6b00" stroke-width="2" />');
   }
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="230" style="background:#0b0c0e">' + shapes.join('') + '</svg>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="230" style="background:#090a0d">' + shapes.join('') + '</svg>';
 }
 
 let activeCategory = 'all';
@@ -298,32 +430,54 @@ function drawDemoGraphic() {
   if (effect === 'studio') {
     const grad = workCtx.createRadialGradient(280, 140, 20, 280, 140, 260);
     grad.addColorStop(0, '#232732');
-    grad.addColorStop(1, '#0b0c0e');
+    grad.addColorStop(1, '#090a0d');
     workCtx.fillStyle = grad;
     workCtx.fillRect(0, 0, workCanvas.width, workCanvas.height);
   }
-  workCtx.strokeStyle = '#343946';
+  workCtx.strokeStyle = '#333a4c';
   workCtx.lineWidth = 1.5;
   workCtx.strokeRect(70, 45, 420, 190);
-  workCtx.fillStyle = '#f4f4f6';
-  workCtx.font = '600 18px -apple-system, Inter, sans-serif';
+  workCtx.fillStyle = '#f0f2f5';
+  workCtx.font = '600 18px "Space Grotesk", sans-serif';
   workCtx.fillText(currentTool ? currentTool.title : 'OmniTools Studio', 100, 125);
-  workCtx.fillStyle = '#9ea4b0';
-  workCtx.font = '13px -apple-system, Inter, sans-serif';
-  workCtx.fillText('Processed locally in browser memory • Zero cloud uploads', 100, 160);
+  workCtx.fillStyle = '#949cae';
+  workCtx.font = '13px "JetBrains Mono", monospace';
+  workCtx.fillText('Processed locally in browser RAM • Zero cloud uploads', 100, 160);
 }
 
 document.getElementById('img-demo-btn')?.addEventListener('click', drawDemoGraphic);
 document.getElementById('img-effect')?.addEventListener('change', drawDemoGraphic);
 
+// Enforce Pro locks on scale selector
+document.getElementById('img-scale')?.addEventListener('change', (e) => {
+  const val = parseFloat(e.target.value);
+  if (val > 1 && !isProUnlocked()) {
+    e.target.value = '1';
+    openProDialog('upscale');
+  }
+});
+
+// Enforce Pro locks on multi-file selection & file size
 document.getElementById('img-input')?.addEventListener('change', (e) => {
   const files = e.target.files;
   if (!files || !files.length || !workCanvas || !workCtx) return;
-  if (files.length > 1 && !recordExportOrPromptPaywall(true)) return;
+  if (files.length > 1 && !isProUnlocked()) {
+    openProDialog('batch');
+    e.target.value = '';
+    return;
+  }
+  if (files[0].size > 15 * 1024 * 1024 && !isProUnlocked()) {
+    openProDialog('filesize');
+    e.target.value = '';
+    return;
+  }
   const img = new Image();
   img.onload = () => {
-    const scale = parseFloat(document.getElementById('img-scale')?.value || '1');
-    if (scale > 1 && !recordExportOrPromptPaywall(true)) return;
+    let scale = parseFloat(document.getElementById('img-scale')?.value || '1');
+    if (scale > 1 && !isProUnlocked()) {
+      scale = 1;
+      document.getElementById('img-scale').value = '1';
+    }
     workCanvas.width = Math.max(120, Math.round(img.width * scale));
     workCanvas.height = Math.max(120, Math.round(img.height * scale));
     workCtx.drawImage(img, 0, 0, workCanvas.width, workCanvas.height);
@@ -331,10 +485,15 @@ document.getElementById('img-input')?.addEventListener('change', (e) => {
   img.src = URL.createObjectURL(files[0]);
 });
 
+// Enforce quota & upscale lock on Image Export
 document.getElementById('img-export-btn')?.addEventListener('click', () => {
   if (!workCanvas) return;
   const scale = parseFloat(document.getElementById('img-scale')?.value || '1');
-  if (!recordExportOrPromptPaywall(scale > 1)) return;
+  if (scale > 1 && !isProUnlocked()) {
+    openProDialog('upscale');
+    return;
+  }
+  if (!recordExportOrPromptPaywall('quota')) return;
   const mime = document.getElementById('img-format')?.value || 'image/png';
   const ext = mime.split('/')[1];
   const a = document.createElement('a');
@@ -370,7 +529,7 @@ document.getElementById('doc-redact-btn')?.addEventListener('click', () => {
 });
 
 document.getElementById('doc-download-btn')?.addEventListener('click', () => {
-  if (!recordExportOrPromptPaywall(false)) return;
+  if (!recordExportOrPromptPaywall('quota')) return;
   const out = document.getElementById('doc-output')?.value || '';
   const blob = new Blob([out], { type: 'text/markdown' });
   const a = document.createElement('a');
@@ -394,7 +553,7 @@ document.getElementById('dxf-sample-btn')?.addEventListener('click', () => {
 });
 document.getElementById('dxf-convert-btn')?.addEventListener('click', renderDxfPreview);
 document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
-  if (!recordExportOrPromptPaywall(false)) return;
+  if (!recordExportOrPromptPaywall('quota')) return;
   const svg = document.getElementById('dxf-preview')?.innerHTML || '';
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
@@ -404,7 +563,7 @@ document.getElementById('dxf-download-btn')?.addEventListener('click', () => {
 });
 
 document.getElementById('media-synth-btn')?.addEventListener('click', () => {
-  if (!recordExportOrPromptPaywall(false)) return;
+  if (!recordExportOrPromptPaywall('quota')) return;
   const sampleRate = 44100;
   const numSamples = sampleRate;
   const buffer = new ArrayBuffer(44 + numSamples * 2);
@@ -442,7 +601,7 @@ if (mmdCanvas) {
   function drawMmd() {
     angle += 0.025;
     mCtx.clearRect(0, 0, mmdCanvas.width, mmdCanvas.height);
-    mCtx.strokeStyle = '#f4f4f6';
+    mCtx.strokeStyle = '#f0f2f5';
     mCtx.lineWidth = 2;
     const cx = mmdCanvas.width / 2;
     const sway = Math.sin(angle) * 24;

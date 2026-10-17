@@ -10,7 +10,7 @@
   <meta property="og:description" content="Merge PDF Files Offline directly in your browser (Browser WASM/Parser). Zero cloud uploads. Built-in replacement for Sejda / PDF24 ($7-$12/mo)." />
   <meta property="og:url" content="https://verdyaa.github.io/omni-tools-ai/merge-pdf/" />
   <meta property="og:type" content="website" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF Files Offline","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (Web Browser)","url":"https://verdyaa.github.io/omni-tools-ai/merge-pdf/","offers":[{"@type":"Offer","name":"Free Tier","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"OmniTools Pro","price":"9.00","priceCurrency":"USD"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF Files Offline","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (Web Browser)","url":"https://verdyaa.github.io/omni-tools-ai/merge-pdf/","offers":[{"@type":"Offer","name":"Free Tier","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"OmniTools Pro Monthly","price":"9.00","priceCurrency":"USD"},{"@type":"Offer","name":"OmniTools Pro Lifetime","price":"29.00","priceCurrency":"USD"}]}</script>
   <link rel="stylesheet" href="/omni-tools-ai/assets/bento.css" />
 </head>
 <body>
@@ -21,15 +21,15 @@
         <div class="brand-mark">O</div>
         <div>
           <span class="brand-name">OmniTools</span>
-          <span class="brand-tag">Local-first browser utilities</span>
+          <span class="brand-tag"><span id="top-status-indicator" class="status-led free" title="System Ready"></span>TERMINAL // REV 2026.4</span>
         </div>
       </a>
 
       <nav class="topbar-nav">
-        <a href="/omni-tools-ai/pdf-to-markdown/" class="nav-chip">PDF to Markdown</a>
-        <a href="/omni-tools-ai/dxf-to-svg/" class="nav-chip">CAD DXF to SVG</a>
-        <a href="/omni-tools-ai/redact-pdf/" class="nav-chip">Redact PDF</a>
-        <a href="/omni-tools-ai/remove-image-background/" class="nav-chip">Background Studio</a>
+        <a href="/omni-tools-ai/pdf-to-markdown/" class="nav-chip">PDF to MD</a>
+        <a href="/omni-tools-ai/dxf-to-svg/" class="nav-chip">CAD DXF</a>
+        <a href="/omni-tools-ai/redact-pdf/" class="nav-chip">PII Redact</a>
+        <a href="/omni-tools-ai/remove-image-background/" class="nav-chip">Background</a>
         <button type="button" id="nav-pro-btn" class="btn btn-accent">Unlock Pro — $9/mo</button>
       </nav>
     </header>
@@ -40,8 +40,8 @@
       <section class="bento-cell cell-workbench">
         <div class="workbench-header">
           <div class="eyebrow">
-            <span id="active-tool-runtime">Browser WASM/Parser</span>
-            <span class="badge-pill">Zero Cloud Upload</span>
+            <span><span class="status-led free"></span>ENGINE: <span id="active-tool-runtime">Browser WASM/Parser</span></span>
+            <span class="badge-pill">LOCAL RAM // ZERO CLOUD</span>
           </div>
           <h1 id="tool-page-h1">Merge PDF Files Offline</h1>
           <p>Merge PDF Files Offline directly in your browser (Browser WASM/Parser). Zero cloud uploads. Built-in replacement for Sejda / PDF24 ($7-$12/mo).</p>
@@ -50,8 +50,8 @@
         <!-- Engine 1: Image Studio -->
         <div id="engine-image-canvas">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <input type="file" id="img-input" accept="image/*" multiple class="btn" />
-            <button type="button" id="img-demo-btn" class="btn">Reset Sample</button>
+            <input type="file" id="img-input" accept="image/*" multiple class="btn" title="Choose image file(s)" />
+            <button type="button" id="img-demo-btn" class="btn">Reset Graphic</button>
             <label class="select-pill">
               Format
               <select id="img-format">
@@ -61,40 +61,41 @@
               </select>
             </label>
             <label class="select-pill">
-              Resolution
+              Scale
               <select id="img-scale">
                 <option value="1">1x Standard (Free)</option>
                 <option value="0.5">0.5x Compressed (Free)</option>
-                <option value="2">2x Hi-DPI Upscale (Pro)</option>
+                <option value="2">2x Hi-DPI (Pro Locked)</option>
+                <option value="4">4x Ultra-Res (Pro Locked)</option>
               </select>
             </label>
             <label class="select-pill">
-              Treatment
+              Filter
               <select id="img-effect">
                 <option value="none">Original</option>
                 <option value="studio">Studio Backdrop</option>
                 <option value="blur">Privacy Blur</option>
               </select>
             </label>
-            <button type="button" id="img-export-btn" class="btn btn-primary">Export File</button>
+            <button type="button" id="img-export-btn" class="btn btn-primary">Export Image</button>
           </div>
           <div class="stage-surface">
-            <canvas id="work-canvas" width="560" height="280" style="max-width:100%;border-radius:10px"></canvas>
+            <canvas id="work-canvas" width="560" height="280" style="max-width:100%;border-radius:6px"></canvas>
           </div>
         </div>
 
         <!-- Engine 2: Document to Markdown & Redaction -->
         <div id="engine-doc-markdown" style="display:none">
           <div class="toolbar-strip" style="margin-bottom:12px">
-            <button type="button" id="doc-sample-table-btn" class="btn">Load Table Sample</button>
-            <button type="button" id="doc-sample-pii-btn" class="btn">Load PII Contract</button>
-            <button type="button" id="doc-convert-md-btn" class="btn btn-primary">Convert to Markdown</button>
+            <button type="button" id="doc-sample-table-btn" class="btn">Table Sample</button>
+            <button type="button" id="doc-sample-pii-btn" class="btn">PII Contract</button>
+            <button type="button" id="doc-convert-md-btn" class="btn btn-primary">Format Table MD</button>
             <button type="button" id="doc-redact-btn" class="btn">Redact PII</button>
             <button type="button" id="doc-download-btn" class="btn btn-accent">Export .MD</button>
           </div>
           <div class="editor-split">
-            <textarea id="doc-input" rows="11" placeholder="Paste CSV, TSV, Excel rows, or contract text..."></textarea>
-            <textarea id="doc-output" rows="11" readonly placeholder="Clean Markdown table or redacted output..."></textarea>
+            <textarea id="doc-input" rows="11" placeholder="Paste CSV, TSV, Excel rows, or legal text..."></textarea>
+            <textarea id="doc-output" rows="11" readonly placeholder="Parsed Markdown table or sanitized text..."></textarea>
           </div>
         </div>
 
@@ -106,7 +107,7 @@
             <button type="button" id="dxf-download-btn" class="btn btn-accent">Export .SVG</button>
           </div>
           <div class="editor-split">
-            <textarea id="dxf-input" rows="11" placeholder="Paste ASCII AutoCAD .DXF entities..."></textarea>
+            <textarea id="dxf-input" rows="11" placeholder="Paste ASCII AutoCAD .DXF file contents..."></textarea>
             <div id="dxf-preview" class="stage-surface" style="min-height:230px"></div>
           </div>
         </div>
@@ -118,7 +119,7 @@
             <button type="button" id="media-synth-btn" class="btn btn-primary">Export Lossless 44.1kHz .WAV</button>
           </div>
           <div class="stage-surface">
-            <p style="color:var(--text-secondary);font-size:0.88rem">Local WebAudio PCM stream ready. Zero server transcoding cost.</p>
+            <p style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:0.84rem">Local WebAudio 32-bit float PCM stream ready. Zero server uploads.</p>
           </div>
         </div>
 
@@ -134,12 +135,12 @@
       <aside class="bento-cell cell-monetize">
         <div>
           <div class="eyebrow">
-            <span>Workspace Plan</span>
-            <span class="badge-pill" id="tier-badge">FREE TIER</span>
+            <span>Hardware Plan</span>
+            <span class="badge-pill" id="tier-badge">FREE TIER (2/2 LEFT)</span>
           </div>
-          <h2 style="font-size:1.15rem;font-weight:600;margin-top:8px;letter-spacing:-0.02em">Batch &amp; Hi-DPI Pass</h2>
+          <h2 style="font-size:1.15rem;margin-top:8px">Batch &amp; 4x Hi-DPI Pass</h2>
           <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:4px">
-            Single files run free forever. Upgrade for unlimited multi-file batch queues, 2x/4x Hi-DPI exports, and compliance logs.
+            Single conversions run free. Unlock Pro for unlimited multi-file batch queues, 2x/4x Hi-DPI upscales, and certified PII logs.
           </p>
         </div>
 
@@ -153,28 +154,34 @@
         </div>
 
         <ul class="feature-list">
-          <li>✓ Unlimited daily exports &amp; batch ZIP mode</li>
-          <li>✓ 2x/4x Hi-DPI canvas &amp; CAD vector scaling</li>
-          <li>✓ Full local PII redaction compliance export</li>
+          <li>✓ Unlimited daily conversions &amp; exports</li>
+          <li>✓ Multi-file batch queues &amp; ZIP archiving</li>
+          <li>✓ 2x &amp; 4x Hi-DPI Super-Resolution canvas</li>
+          <li>✓ 100% local processing in RAM (No Cloud)</li>
         </ul>
 
-        <button type="button" id="open-pro-btn" class="btn btn-primary" style="width:100%">
-          Unlock OmniTools Pro — $9/mo or $29 once
-        </button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" id="open-pro-btn" class="btn btn-accent" style="width:100%">
+            Unlock OmniTools Pro — $9/mo or $29 once
+          </button>
+          <button type="button" id="deactivate-license-btn" class="btn btn-outline-danger" style="width:100%;display:none">
+            Reset to Free Tier (Test Lock)
+          </button>
+        </div>
       </aside>
 
       <!-- Cell 3 (Span 4): Contextual Partner & API Benchmark Bento Card -->
       <aside class="bento-cell cell-partner">
         <div>
           <div class="eyebrow">
-            <span>Cloud API Benchmark</span>
-            <span class="badge-pill">PARTNER</span>
+            <span>Cloud SaaS Benchmark</span>
+            <span class="badge-pill">COMPARE</span>
           </div>
-          <h2 style="font-size:1.05rem;font-weight:600;margin-top:8px;letter-spacing:-0.02em">
+          <h2 style="font-size:1.05rem;margin-top:8px">
             Replaces <span id="active-tool-benchmark">Sejda / PDF24 ($7-$12/mo)</span>
           </h2>
           <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:6px">
-            OmniTools processes files in your device RAM for $0. Need automated REST webhooks, cloud storage, or 10,000+ page enterprise SLA?
+            OmniTools runs completely offline in device RAM. Need server REST APIs, cloud webhooks, or multi-terabyte pipelines?
           </p>
         </div>
 
@@ -199,7 +206,7 @@
               <span>Programmatic Directory</span>
               <span class="badge-pill" id="catalog-count">84 tools</span>
             </div>
-            <h2 style="font-size:1.25rem;font-weight:600;margin-top:4px;letter-spacing:-0.02em">All 84 Local Browser Tools</h2>
+            <h2 style="font-size:1.25rem;margin-top:4px">All 84 Local Browser Tools</h2>
           </div>
 
           <input
@@ -228,38 +235,46 @@
   <!-- Native Light-Dismiss Pro Checkout & License Modal -->
   <dialog id="pro-dialog" closedby="any" aria-labelledby="pro-dialog-title">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <h2 id="pro-dialog-title" style="font-size:1.2rem;font-weight:600;letter-spacing:-0.02em">Unlock OmniTools Pro</h2>
+      <h2 id="pro-dialog-title" style="font-size:1.2rem;letter-spacing:-0.02em">Unlock OmniTools Pro</h2>
       <form method="dialog"><button type="submit" class="btn" style="padding:4px 10px">Esc</button></form>
     </div>
-    <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:6px">
-      Remove the 2/day free export cap and unlock multi-file batch queues + 2x/4x Hi-DPI exports across all 84 tools.
+
+    <div id="pro-dialog-reason" class="dialog-alert-banner" style="display:none"></div>
+
+    <p style="font-size:0.84rem;color:var(--text-secondary);margin-top:8px">
+      Lift the 2/day export quota and unlock multi-file batch queues + 2x/4x Super-Resolution canvas upscales across all 84 tools.
     </p>
 
     <div class="pricing-cards">
       <div class="price-box">
         <span class="eyebrow">Monthly Pass</span>
         <div class="price-amount">$9 <span style="font-size:0.8rem;font-weight:400;color:var(--text-muted)">/mo</span></div>
-        <p style="font-size:0.76rem;color:var(--text-secondary)">Cancel anytime. Instant license key delivery.</p>
-        <a href="https://wedworks.gumroad.com/l/etvreq" target="_blank" rel="noopener" class="btn" style="margin-top:auto">Checkout Monthly ($9/mo)</a>
+        <p style="font-size:0.75rem;color:var(--text-secondary)">Cancel anytime. Instant Gumroad license key.</p>
+        <a href="https://wedworks.gumroad.com/l/etvreq" target="_blank" rel="noopener" class="btn" style="margin-top:auto">Get Monthly ($9/mo)</a>
       </div>
 
       <div class="price-box featured">
-        <span class="eyebrow" style="color:var(--accent)">Lifetime License</span>
+        <span class="eyebrow" style="color:var(--accent)">Lifetime Pass</span>
         <div class="price-amount">$29 <span style="font-size:0.8rem;font-weight:400;color:var(--text-muted)">once</span></div>
-        <p style="font-size:0.76rem;color:var(--text-secondary)">Pay once, use all 84 local browser tools forever.</p>
-        <a href="https://wedworks.gumroad.com/l/xlqmp" target="_blank" rel="noopener" class="btn btn-accent" style="margin-top:auto">Buy Lifetime Pass ($29)</a>
+        <p style="font-size:0.75rem;color:var(--text-secondary)">Pay once, unlock all 84 local tools forever.</p>
+        <a href="https://wedworks.gumroad.com/l/xlqmp" target="_blank" rel="noopener" class="btn btn-accent" style="margin-top:auto">Get Lifetime ($29)</a>
       </div>
     </div>
 
-    <div style="border-top:1px solid var(--border-subtle);padding-top:12px">
-      <label for="license-input" style="font-size:0.76rem;color:var(--text-secondary)">
-        Already have a Gumroad or OmniTools license key?
+    <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:10px">
+      <label for="license-input" style="font-size:0.76rem;color:var(--text-secondary);display:block;margin-bottom:4px">
+        Have a Gumroad license key? Enter below to verify:
       </label>
       <div class="license-row">
-        <input type="text" id="license-input" placeholder="OMNI-PRO-2026" />
-        <button type="button" id="activate-license-btn" class="btn btn-primary">Activate</button>
+        <input type="text" id="license-input" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" />
+        <button type="button" id="activate-license-btn" class="btn btn-primary">Verify &amp; Unlock</button>
       </div>
-      <div id="license-status" style="font-size:0.75rem;color:var(--success);margin-top:6px"></div>
+      <div id="license-status" style="font-size:0.75rem;margin-top:8px;font-family:'JetBrains Mono',monospace"></div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end">
+        <button type="button" id="dialog-deactivate-btn" class="btn btn-outline-danger" style="font-size:0.7rem;padding:4px 10px">
+          Reset / Return to Free Tier
+        </button>
+      </div>
     </div>
   </dialog>
 
