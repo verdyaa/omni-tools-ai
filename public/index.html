@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S. — Just A Rather Very Intelligent System</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="hud-shell">
+    <!-- Top Header -->
+    <header class="hud-header">
+      <div class="brand-block">
+        <div class="brand-title">J . A . R . V . I . S .</div>
+        <div class="brand-subtitle">JUST A RATHER VERY INTELLIGENT SYSTEM // CLAUDE CODE + MCP ORCHESTRATOR</div>
+      </div>
+
+      <div class="status-pills">
+        <span class="pill pill-online"><span class="dot"></span> SYSTEM ONLINE</span>
+        <span class="pill" id="voice-status-pill">VOICE: BRITISH TTS READY</span>
+        <a href="/tools" class="pill" style="text-decoration:none;border-color:var(--emerald);color:var(--emerald)">⚡ LAUNCH 84-TOOL SEO ENGINE (/tools)</a>
+      </div>
+
+      <div class="clock-block">
+        <div class="clock-time" id="hud-clock">00:00:00</div>
+        <div class="clock-meta" id="hud-date">INITIALIZING TELEMETRY...</div>
+      </div>
+    </header>
+
+    <!-- Main 3-Column HUD Grid -->
+    <main class="hud-grid">
+      <!-- Left Column: Telemetry, Subagents, Comms Log -->
+      <section class="hud-column">
+        <article class="hud-panel">
+          <div class="panel-header">
+            <span>CORE TELEMETRY &amp; MCP NODES</span>
+            <span class="panel-tag">5 ACTIVE</span>
+          </div>
+          <div class="telemetry-bars">
+            <div class="bar-row">
+              <span>CLAUDE SONNET 4.6 BRAIN</span>
+              <div class="bar-track"><div class="bar-fill" style="width: 92%"></div></div>
+              <span class="bar-val">92%</span>
+            </div>
+            <div class="bar-row">
+              <span>CHROME BROWSER BRIDGE</span>
+              <div class="bar-track"><div class="bar-fill" style="width: 78%"></div></div>
+              <span class="bar-val">SYNC</span>
+            </div>
+            <div class="bar-row">
+              <span>FISH AUDIO VOICE ENGINE</span>
+              <div class="bar-track"><div class="bar-fill" style="width: 85%"></div></div>
+              <span class="bar-val">JARVIS</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="hud-panel">
+          <div class="panel-header">
+            <span>SPECIALIZED SUBAGENTS</span>
+            <span class="panel-tag">.claude/agents</span>
+          </div>
+          <div id="subagents-list" class="subagents-list"></div>
+        </article>
+
+        <article class="hud-panel panel-grow">
+          <div class="panel-header">
+            <span>VOICE &amp; AGENT COMMS LOG</span>
+            <span class="panel-tag">LIVE STREAM</span>
+          </div>
+          <div id="comms-log" class="comms-log"></div>
+        </article>
+      </section>
+
+      <!-- Center Column: Rotating Wireframe Globe + Voice Console + MCP Metric Cards -->
+      <section class="hud-column center-column">
+        <article class="hud-panel globe-stage">
+          <div class="globe-overlay-top">
+            <span>ORBITAL CORE // AUDIO-REACTIVE NEURAL MATRIX</span>
+            <span id="active-agent-indicator">LEAD: J.A.R.V.I.S.</span>
+          </div>
+
+          <div class="globe-container">
+            <svg class="hud-rings" viewBox="0 0 400 400" aria-hidden="true">
+              <circle cx="200" cy="200" r="182" class="ring-outer" />
+              <circle cx="200" cy="200" r="164" class="ring-dashed" />
+              <circle cx="200" cy="200" r="142" class="ring-ticks" />
+            </svg>
+            <canvas id="globe-canvas" width="420" height="420"></canvas>
+          </div>
+
+          <!-- Voice & Command Bar -->
+          <div class="command-console">
+            <button type="button" id="wake-btn" class="hud-btn hud-btn-primary">
+              WAKE JARVIS (DAILY BRIEF)
+            </button>
+            <button type="button" id="mic-btn" class="hud-btn">
+              🎙️ PUSH TO TALK
+            </button>
+            <form id="command-form" class="command-form">
+              <input
+                type="text"
+                id="command-input"
+                placeholder="Speak or type command (e.g. 'Hey Jarvis, how is the app doing?' or 'Have Tom review the PR')..."
+                autocomplete="off"
+              />
+              <button type="submit" class="hud-btn">EXECUTE</button>
+            </form>
+          </div>
+        </article>
+
+        <!-- Bottom 4 MCP Metric Cards -->
+        <div class="mcp-cards-grid">
+          <article class="hud-panel mcp-card">
+            <div class="panel-header">
+              <span>REVENUECAT MCP</span>
+              <span class="panel-tag">7D STATS</span>
+            </div>
+            <div class="metric-big" id="rc-revenue">$4,289</div>
+            <div class="metric-sub">
+              <span id="rc-downloads">2,459</span> new downloads • <span id="rc-subs">1,184</span> active subs
+            </div>
+          </article>
+
+          <article class="hud-panel mcp-card">
+            <div class="panel-header">
+              <span>BUFFER MCP</span>
+              <span class="panel-tag">ORGANIC</span>
+            </div>
+            <div class="metric-big" id="buffer-rate">3 / DAY</div>
+            <div class="metric-sub" id="buffer-platforms">Reels • TikTok • Shorts (9 queued)</div>
+          </article>
+
+          <article class="hud-panel mcp-card">
+            <div class="panel-header">
+              <span>META ADS MCP</span>
+              <span class="panel-tag">PAID ACQ</span>
+            </div>
+            <div class="metric-big"><span id="meta-roas">1.5x</span> ROAS</div>
+            <div class="metric-sub">$<span id="meta-spend">475</span> spend • Street Interview #4</div>
+          </article>
+
+          <article class="hud-panel mcp-card">
+            <div class="panel-header">
+              <span>GMAIL MCP + FAQ.MD</span>
+              <span class="panel-tag">SUPPORT</span>
+            </div>
+            <div class="metric-big"><span id="gmail-resolved">13</span> / <span id="gmail-total">16</span></div>
+            <div class="metric-sub">Auto-resolved • 3 escalated to Tom</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Right Column: Proximity Radar, Waveform, Recommendations -->
+      <section class="hud-column">
+        <article class="hud-panel">
+          <div class="panel-header">
+            <span>SECTOR RADAR // SUBAGENT SWEEP</span>
+            <span class="panel-tag">360° SCAN</span>
+          </div>
+          <div class="radar-wrap">
+            <div class="radar-circle">
+              <div class="radar-sweep"></div>
+              <div class="radar-blip blip-1" title="Tom: PR #42"></div>
+              <div class="radar-blip blip-2" title="Scout: Reels Queue"></div>
+              <div class="radar-blip blip-3" title="Support: Gmail Inbox"></div>
+            </div>
+            <div class="radar-stats">
+              <div><span>LATENCY</span><strong>14.2 ms</strong></div>
+              <div><span>MCP PIPELINE</span><strong>NOMINAL</strong></div>
+              <div><span>FAQ MATCH RATE</span><strong>81.3%</strong></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="hud-panel">
+          <div class="panel-header">
+            <span>VOICE MODULATION WAVEFORM</span>
+            <span class="panel-tag">CH 01 / 02</span>
+          </div>
+          <canvas id="wave-canvas" width="320" height="105"></canvas>
+        </article>
+
+        <article class="hud-panel panel-grow">
+          <div class="panel-header">
+            <span>DAILY BRIEF RECOMMENDATIONS</span>
+            <span class="panel-tag">1-CLICK HANDOFF</span>
+          </div>
+          <p class="brief-quote" id="brief-summary">
+            "What would you like me to handle first, sir?"
+          </p>
+          <div id="recommendations-list" class="recommendations-list"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

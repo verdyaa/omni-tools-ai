@@ -1,0 +1,13 @@
+{
+  "name": "jarvis-command-center",
+  "version": "1.0.0",
+  "description": "J.A.R.V.I.S. AI Command Center — HUD Dashboard, Voice (Fish Audio/WebSpeech), Subagents (Tom, Scout, Support), MCP Connectors (RevenueCat, Buffer, Meta Ads, Gmail), and Daily Brief Routine",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.mjs",
+    "build": "node src/build-static.mjs",
+    "deploy": "node src/build-static.mjs && git -C dist add -A && git -C dist commit -m 'chore: deploy static site' && git -C dist push -f origin gh-pages",
+    "brief": "node --env-file-if-exists=.env src/routine.mjs",
+    "test": "node --test test/jarvis.test.mjs"
+  }
+}
